@@ -1,5 +1,16 @@
-/* ============ Aurora music player ============ */
+/* ============ Ayvars music player ============ */
 const API_BASE = "https://jiosaavn-api-one-rho.vercel.app";
+
+// Neutral glass-toned placeholder shown when a song has no artwork
+const COVER_FALLBACK =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#1c1c26"/>
+      <circle cx="50" cy="50" r="26" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="4"/>
+      <circle cx="50" cy="50" r="6" fill="rgba(255,255,255,0.35)"/>
+    </svg>`
+  );
 
 const el = {
   form: document.getElementById("search-form"),
@@ -102,9 +113,10 @@ function renderResults() {
 
     const img = document.createElement("img");
     img.className = "track-cover";
-    img.src = song.cover;
-    img.alt = "";
+    img.src = song.cover || COVER_FALLBACK;
+    img.alt = `${song.title} album artwork`;
     img.loading = "lazy";
+    img.onerror = () => { img.onerror = null; img.src = COVER_FALLBACK; };
 
     const info = document.createElement("div");
     info.className = "track-info";
@@ -148,10 +160,11 @@ function playIndex(i) {
   el.audio.src = song.streamUrl;
   el.audio.play().catch(() => {});
 
-  el.cover.src = song.cover;
+  el.cover.src = song.cover || COVER_FALLBACK;
+  el.cover.onerror = () => { el.cover.onerror = null; el.cover.src = COVER_FALLBACK; };
   el.title.textContent = song.title;
   el.artist.textContent = song.artist;
-  document.title = `${song.title} · Aurora`;
+  document.title = `${song.title} · Ayvars`;
 
   el.player.classList.add("visible");
   el.player.setAttribute("aria-hidden", "false");

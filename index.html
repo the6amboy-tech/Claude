@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Aurora · Music Player</title>
+  <title>Ayvars · Music Player</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎧</text></svg>" />
 </head>
@@ -17,13 +17,10 @@
 
   <main class="app">
     <header class="app-header">
-      <div class="logo">
-        <span class="logo-mark">
-          <span class="bar"></span><span class="bar"></span><span class="bar"></span>
-        </span>
-        <h1>Aurora</h1>
+      <div class="brand">
+        <h1 class="brand-name">Ayvars</h1>
+        <p class="tagline">Music, beautifully simple.</p>
       </div>
-      <p class="tagline">Search. Play. No ads, no logins.</p>
     </header>
 
     <form class="search-box glass" id="search-form" autocomplete="off">
@@ -49,8 +46,8 @@
   <footer class="player glass" id="player" aria-hidden="true">
     <div class="player-track">
       <div class="cover-wrap">
-        <img id="player-cover" src="" alt="" />
-        <div class="cover-ring"></div>
+        <img id="player-cover" src="" alt="Album artwork" />
+        <span class="cover-sheen"></span>
       </div>
       <div class="track-meta">
         <span id="player-title" class="track-title">—</span>
@@ -61,14 +58,20 @@
     <div class="player-center">
       <div class="controls">
         <button id="btn-prev" class="ctrl-btn" title="Previous song" aria-label="Previous song">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>
+          <span class="btn-float">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>
+          </span>
         </button>
         <button id="btn-play" class="ctrl-btn play-btn" title="Play / Pause" aria-label="Play or pause">
-          <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-          <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+          <span class="btn-float">
+            <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+          </span>
         </button>
         <button id="btn-next" class="ctrl-btn" title="Play next song" aria-label="Play next song">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>
+          <span class="btn-float">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>
+          </span>
         </button>
       </div>
       <div class="seek-row">
