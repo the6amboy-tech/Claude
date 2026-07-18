@@ -1,4 +1,4 @@
-# Ayvars 🎧
+# Asharas 🎧
 
 A modern, responsive music player with an Apple-inspired frosted-glass theme,
 powered by a custom [JioSaavn API](https://jiosaavn-api-one-rho.vercel.app).
