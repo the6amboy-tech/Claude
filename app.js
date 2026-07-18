@@ -1,4 +1,4 @@
-/* ============ Ayvars music player ============ */
+/* ============ Asharas music player ============ */
 const API_BASE = "https://jiosaavn-api-one-rho.vercel.app";
 
 // Neutral glass-toned placeholder shown when a song has no artwork
