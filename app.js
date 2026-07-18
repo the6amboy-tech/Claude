@@ -164,7 +164,7 @@ function playIndex(i) {
   el.cover.onerror = () => { el.cover.onerror = null; el.cover.src = COVER_FALLBACK; };
   el.title.textContent = song.title;
   el.artist.textContent = song.artist;
-  document.title = `${song.title} · Ayvars`;
+  document.title = `${song.title} · Asharas`;
 
   el.player.classList.add("visible");
   el.player.setAttribute("aria-hidden", "false");
