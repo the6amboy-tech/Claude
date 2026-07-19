@@ -7,7 +7,7 @@
   <title>Asharas</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎧</text></svg>" />
 </head>
@@ -16,34 +16,135 @@
   <div class="bg-orb orb-2"></div>
   <div class="bg-orb orb-3"></div>
 
-  <main class="app">
-    <header class="app-header">
-      <div class="brand">
-        <h1 class="brand-name">Asharas</h1>
-        <p class="tagline">My <em>Contribution</em> to music</p>
+  <!-- ======== Welcome ======== -->
+  <div id="welcome">
+    <div class="welcome-inner">
+      <div class="logo-tile glass"><span>A</span></div>
+      <h1 class="brand-name brand-xl">Asharas</h1>
+      <p class="tagline">My <em>Contribution</em> to music</p>
+      <div class="mode-cards">
+        <button class="mode-card glass" id="card-mood">
+          <span class="mode-emoji">🎭</span>
+          <span class="mode-title">Mood Player</span>
+          <span class="mode-desc">Pick a vibe and let Asharas queue the perfect set.</span>
+        </button>
+        <button class="mode-card glass" id="card-normal">
+          <span class="mode-emoji">🎵</span>
+          <span class="mode-title">Normal Player</span>
+          <span class="mode-desc">Search, queue, favorites &amp; playlists.</span>
+        </button>
       </div>
-    </header>
+      <p class="key-hints"><kbd>Space</kbd> play · <kbd>N</kbd> next · <kbd>←</kbd><kbd>→</kbd> seek</p>
+    </div>
+  </div>
 
-    <form class="search-box glass" id="search-form" autocomplete="off">
-      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <circle cx="11" cy="11" r="7"></circle>
-        <line x1="21" y1="21" x2="16.5" y2="16.5"></line>
-      </svg>
-      <input id="search-input" type="text" placeholder="Search songs, artists, albums…" spellcheck="false" />
-      <button type="submit" class="search-btn">Search</button>
-    </form>
+  <!-- ======== App shell ======== -->
+  <div class="shell">
+    <aside class="sidebar glass">
+      <div class="side-brand"><span class="brand-name">Asharas</span></div>
+      <nav class="side-nav">
+        <button class="nav-btn active" data-nav="home">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v10h14V10"/></svg>
+          Home
+        </button>
+        <button class="nav-btn" data-nav="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+          Search
+        </button>
+        <button class="nav-btn" data-nav="favorites">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.6-9.5-8.5C.6 9 2.6 5.5 6 5.5c2 0 3.4 1.1 4 2.2.6-1.1 2-2.2 4-2.2 3.4 0 5.4 3.5 3.5 7C19 16.4 12 21 12 21z"/></svg>
+          Favorites
+        </button>
+        <button class="nav-btn" data-nav="playlists">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg>
+          Playlists
+        </button>
+      </nav>
+    </aside>
 
-    <section class="results-area">
-      <div id="status" class="status">
-        <p>Try searching for <button class="chip" data-q="English">English</button>
-        <button class="chip" data-q="Telugu">Telugu</button>
-        <button class="chip" data-q="Hindi">Hindi</button></p>
+    <main class="app">
+      <form class="search-box glass" id="search-form" autocomplete="off">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="11" cy="11" r="7"></circle>
+          <line x1="21" y1="21" x2="16.5" y2="16.5"></line>
+        </svg>
+        <input id="search-input" type="text" placeholder="Search songs, artists, albums…" spellcheck="false" />
+        <button type="submit" class="search-btn">Search</button>
+      </form>
+
+      <div class="toolbar">
+        <button class="pill-btn glass" id="listen-together">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Listen Together
+        </button>
+        <span class="spacer"></span>
+        <label class="lang-wrap glass">
+          <span class="lang-label">Language</span>
+          <select id="lang-select">
+            <option value="">All</option>
+            <option value="telugu" selected>Telugu</option>
+            <option value="hindi">Hindi</option>
+            <option value="english">English</option>
+            <option value="tamil">Tamil</option>
+            <option value="kannada">Kannada</option>
+            <option value="malayalam">Malayalam</option>
+            <option value="punjabi">Punjabi</option>
+          </select>
+        </label>
       </div>
-      <ul id="results" class="results"></ul>
-    </section>
-  </main>
 
-  <!-- Player bar -->
+      <!-- ---- Home view ---- -->
+      <section id="view-home">
+        <h2 class="section-head"><span class="head-bar"></span>🎵 What are you feeling?</h2>
+        <div class="mood-grid" id="mood-grid">
+          <button class="mood-card" data-q="hip hop hits" style="--tint: 210"><span class="mood-emoji">🎤</span>Hip Hop</button>
+          <button class="mood-card" data-q="chill lofi songs" style="--tint: 190"><span class="mood-emoji">☁️</span>Chill</button>
+          <button class="mood-card" data-q="party dance hits" style="--tint: 45"><span class="mood-emoji">🎉</span>Party</button>
+          <button class="mood-card" data-q="workout gym motivation songs" style="--tint: 150"><span class="mood-emoji">💪</span>Workout</button>
+          <button class="mood-card" data-q="romantic love songs" style="--tint: 350"><span class="mood-emoji">💞</span>Romance</button>
+          <button class="mood-card" data-q="instrumental focus study" style="--tint: 250"><span class="mood-emoji">🧠</span>Focus</button>
+          <button class="mood-card" data-q="trending hit songs 2026" style="--tint: 25"><span class="mood-emoji">🔥</span>Trending</button>
+          <button class="mood-card" data-q="sad emotional songs" style="--tint: 215"><span class="mood-emoji">🌧️</span>Sad</button>
+        </div>
+
+        <div class="fact-card glass">
+          <h2 class="section-head"><span class="head-bar"></span>✨ Did you know?</h2>
+          <p id="fact-text">Loading fun fact…</p>
+          <button class="pill-btn ghost" id="fact-refresh">Refresh</button>
+        </div>
+
+        <div class="row-head">
+          <h2 class="section-head"><span class="head-bar"></span>🔥 Trending now</h2>
+          <button class="link-btn" id="see-all">See all</button>
+        </div>
+        <div class="trend-row" id="trending-row"></div>
+      </section>
+
+      <!-- ---- List view (results / mood / favorites / playlist) ---- -->
+      <section id="view-list" hidden>
+        <div class="list-head">
+          <button class="pill-btn glass" id="back-home">← Home</button>
+          <h2 class="section-head" id="list-title">Results</h2>
+        </div>
+        <ul id="results" class="results"></ul>
+      </section>
+
+      <!-- ---- Playlists view ---- -->
+      <section id="view-playlists" hidden>
+        <div class="list-head">
+          <button class="pill-btn glass" id="back-home-2">← Home</button>
+          <h2 class="section-head">Your playlists</h2>
+        </div>
+        <div class="pl-create glass">
+          <input id="pl-make-name" type="text" placeholder="New playlist name…" />
+          <button class="pill-btn" id="pl-make">Create</button>
+        </div>
+        <div id="playlists-list" class="playlists"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ======== Player bar ======== -->
   <footer class="player glass" id="player" aria-hidden="true">
     <div class="player-track">
       <div class="cover-wrap">
@@ -58,6 +159,9 @@
 
     <div class="player-center">
       <div class="controls">
+        <button id="btn-shuffle" class="mini-btn" title="Shuffle" aria-label="Toggle shuffle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="M4 4l5 5"/></svg>
+        </button>
         <button id="btn-prev" class="ctrl-btn" title="Previous song" aria-label="Previous song">
           <span class="btn-float">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>
@@ -74,6 +178,10 @@
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>
           </span>
         </button>
+        <button id="btn-repeat" class="mini-btn" title="Repeat" aria-label="Cycle repeat mode">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 1 4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="m7 23-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          <span class="repeat-one">1</span>
+        </button>
       </div>
       <div class="seek-row">
         <span id="time-current" class="time">0:00</span>
@@ -83,6 +191,15 @@
     </div>
 
     <div class="player-right">
+      <button id="btn-fav" class="mini-btn" title="Add to favorites" aria-label="Toggle favorite">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.6-9.5-8.5C.6 9 2.6 5.5 6 5.5c2 0 3.4 1.1 4 2.2.6-1.1 2-2.2 4-2.2 3.4 0 5.4 3.5 3.5 7C19 16.4 12 21 12 21z"/></svg>
+      </button>
+      <button id="btn-download" class="mini-btn" title="Open stream (download)" aria-label="Download current song">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+      </button>
+      <button id="btn-dim" class="mini-btn" title="Toggle dim mode" aria-label="Toggle dim mode">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>
+      </button>
       <svg class="vol-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M11 5 6 9H2v6h4l5 4V5z" fill="currentColor" stroke="none"/>
         <path d="M15.5 8.5a5 5 0 0 1 0 7"/>
@@ -93,6 +210,19 @@
 
     <audio id="audio" preload="metadata"></audio>
   </footer>
+
+  <!-- Add-to-playlist dialog -->
+  <dialog id="pl-dialog" class="glass">
+    <h3>Add to playlist</h3>
+    <div id="pl-list" class="pl-options"></div>
+    <div class="pl-create">
+      <input id="pl-new-name" type="text" placeholder="New playlist name…" />
+      <button class="pill-btn" id="pl-create">Create &amp; add</button>
+    </div>
+    <button class="pill-btn ghost" id="pl-close">Close</button>
+  </dialog>
+
+  <div id="toast" role="status"></div>
 
   <script src="app.js"></script>
 </body>
