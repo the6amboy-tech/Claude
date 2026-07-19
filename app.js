@@ -538,10 +538,10 @@ function openAddDialog(song) {
 }
 
 function addToPlaylist(pl, song) {
-  if (pl.songs.some((s) => s.id === song.id)) { toast(`Already in “${pl.name}”`); return; }
+  if (pl.songs.some((s) => s.id === song.id)) { toast(`Already in "${pl.name}"`); return; }
   pl.songs.push(song);
   saveJSON("ash_playlists", playlists);
-  toast(`Added to “${pl.name}”`);
+  toast(`Added to "${pl.name}"`);
 }
 
 /* ---------- Events ---------- */
@@ -570,13 +570,13 @@ el.backHome.addEventListener("click", () => showView("home"));
 el.backHome2.addEventListener("click", () => showView("home"));
 
 // Search
-el.form.addEventListener(“submit”, (e) => {
+el.form.addEventListener("submit", (e) => {
   e.preventDefault();
   const query = el.input.value.trim();
   if (!query) return;
   activeMoodQuery = null;
   activeMoodLabel = null;
-  runSearch(query, `Results for “${query}”`);
+  runSearch(query, `Results for "${query}"`);
 });
 
 // Moods
@@ -871,7 +871,7 @@ loadTrending();
   const params = new URLSearchParams(location.search);
   const q = params.get("q");
   if (!q) return;
-  const songs = await runSearch(q, `Shared · “${q}”`);
+  const songs = await runSearch(q, `Shared · "${q}"`);
   const id = params.get("song");
   const i = songs.findIndex((s) => s.id === id);
   if (i !== -1) { queue = songs; playIndex(i); }
