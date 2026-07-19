@@ -61,6 +61,29 @@ const el = {
   plMakeName: $("pl-make-name"),
   plMake: $("pl-make"),
   toast: $("toast"),
+  ltSessionBar: $("lt-session-bar"),
+  ltBarCode: $("lt-bar-code"),
+  ltBarCopyCode: $("lt-bar-copy-code"),
+  ltBarCopyLink: $("lt-bar-copy-link"),
+  ltBarTransfer: $("lt-bar-transfer"),
+  ltBarLeave: $("lt-bar-leave"),
+  ltDialog: $("lt-dialog"),
+  ltHost: $("lt-host"),
+  ltJoin: $("lt-join"),
+  ltCancel: $("lt-cancel"),
+  ltHostDialog: $("lt-host-dialog"),
+  ltSessionCode: $("lt-session-code"),
+  ltCopyCode: $("lt-copy-code"),
+  ltCopyLink: $("lt-copy-link"),
+  ltTransferHost: $("lt-transfer-host"),
+  ltLeave: $("lt-leave"),
+  ltHostClose: $("lt-host-close"),
+  ltJoinDialog: $("lt-join-dialog"),
+  ltCodeInput: $("lt-code-input"),
+  ltJoinBtn: $("lt-join-btn"),
+  ltJoinCancel: $("lt-join-cancel"),
+  ltTransferDialog: $("lt-transfer-dialog"),
+  ltTransferCancel: $("lt-transfer-cancel"),
 };
 
 /* ---------- Persistent state ---------- */
@@ -84,6 +107,51 @@ let shuffleOn = false;
 let repeatMode = "all"; // off | all | one
 let lastQuery = "";
 let dialogSong = null;
+
+/* ---------- Session state ---------- */
+let sessionCode = null;
+let isHost = false;
+let activeMoodQuery = null;
+let activeMoodLabel = null;
+
+function generateSessionCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+function startSession(host) {
+  isHost = host;
+  sessionCode = generateSessionCode();
+  el.ltSessionCode.textContent = sessionCode;
+  el.ltBarCode.textContent = sessionCode;
+  el.ltSessionBar.hidden = false;
+  el.listenTogether.hidden = true;
+}
+
+function endSession() {
+  sessionCode = null;
+  isHost = false;
+  el.ltSessionBar.hidden = true;
+  el.listenTogether.hidden = false;
+  toast("Session ended");
+}
+
+function sessionUrl() {
+  const url = new URL(location.origin + location.pathname);
+  url.searchParams.set("session", sessionCode || "");
+  if (lastQuery) url.searchParams.set("q", lastQuery);
+  const song = queue[currentIndex];
+  if (song) url.searchParams.set("song", song.id);
+  return url.toString();
+}
+
+function copyToClipboard(text, label) {
+  navigator.clipboard.writeText(text)
+    .then(() => toast(`${label} copied ✓`))
+    .catch(() => toast(text));
+}
 
 el.langSelect.value = loadJSON("ash_lang", "telugu");
 if (loadJSON("ash_dim", false)) document.documentElement.classList.add("dim");
@@ -494,18 +562,20 @@ el.navBtns.forEach((btn) =>
     const nav = btn.dataset.nav;
     if (nav === "home") showView("home");
     else if (nav === "search") { showView("home"); el.input.focus(); window.scrollTo({ top: 0, behavior: "smooth" }); }
-    else if (nav === "favorites") { renderList(favs, "Favorites"); showView("list"); }
-    else if (nav === "playlists") { renderPlaylists(); showView("playlists"); }
+    else if (nav === "favorites") { activeMoodQuery = null; activeMoodLabel = null; renderList(favs, "Favorites"); showView("list"); }
+    else if (nav === "playlists") { activeMoodQuery = null; activeMoodLabel = null; renderPlaylists(); showView("playlists"); }
   })
 );
 el.backHome.addEventListener("click", () => showView("home"));
 el.backHome2.addEventListener("click", () => showView("home"));
 
 // Search
-el.form.addEventListener("submit", (e) => {
+el.form.addEventListener(“submit”, (e) => {
   e.preventDefault();
   const query = el.input.value.trim();
   if (!query) return;
+  activeMoodQuery = null;
+  activeMoodLabel = null;
   runSearch(query, `Results for “${query}”`);
 });
 
@@ -518,13 +588,18 @@ el.moodGrid.addEventListener("click", (e) => {
     .map((n) => n.textContent)
     .join("")
     .trim();
+  activeMoodQuery = card.dataset.q;
+  activeMoodLabel = label;
   runSearch(`${langPrefix()}${card.dataset.q}`, `${label} · ${el.langSelect.value || "All languages"}`);
 });
 
-// Language
+// Language — re-filter active mood if one is selected
 el.langSelect.addEventListener("change", () => {
   saveJSON("ash_lang", el.langSelect.value);
   loadTrending();
+  if (activeMoodQuery) {
+    runSearch(`${langPrefix()}${activeMoodQuery}`, `${activeMoodLabel} · ${el.langSelect.value || "All languages"}`);
+  }
 });
 
 // Trending
@@ -536,18 +611,90 @@ el.seeAll.addEventListener("click", () => {
 // Fun facts
 el.factRefresh.addEventListener("click", loadFact);
 
-// Listen together (share link)
-el.listenTogether.addEventListener("click", async () => {
-  const url = new URL(location.origin + location.pathname);
-  if (lastQuery) url.searchParams.set("q", lastQuery);
-  const song = queue[currentIndex];
-  if (song) url.searchParams.set("song", song.id);
-  try {
-    await navigator.clipboard.writeText(url.toString());
-    toast("Link copied — share it to listen together 🎧");
-  } catch {
-    toast(url.toString());
-  }
+// Listen Together — open choice modal
+el.listenTogether.addEventListener("click", () => el.ltDialog.showModal());
+
+// Choice: Host
+el.ltHost.addEventListener("click", () => {
+  el.ltDialog.close();
+  startSession(true);
+  el.ltHostDialog.showModal();
+});
+
+// Choice: Join
+el.ltJoin.addEventListener("click", () => {
+  el.ltDialog.close();
+  el.ltCodeInput.value = "";
+  el.ltJoinDialog.showModal();
+  setTimeout(() => el.ltCodeInput.focus(), 100);
+});
+
+// Cancel choice dialog
+el.ltCancel.addEventListener("click", () => el.ltDialog.close());
+
+// Host dialog — Copy Code
+el.ltCopyCode.addEventListener("click", () => copyToClipboard(sessionCode, "Code"));
+
+// Host dialog — Copy Link
+el.ltCopyLink.addEventListener("click", () => copyToClipboard(sessionUrl(), "Link"));
+
+// Host dialog — Transfer Host
+el.ltTransferHost.addEventListener("click", () => {
+  el.ltHostDialog.close();
+  el.ltTransferDialog.showModal();
+});
+
+// Host dialog — Leave
+el.ltLeave.addEventListener("click", () => {
+  el.ltHostDialog.close();
+  endSession();
+});
+
+// Host dialog — Close
+el.ltHostClose.addEventListener("click", () => el.ltHostDialog.close());
+
+// Join dialog — Join button
+el.ltJoinBtn.addEventListener("click", () => {
+  const code = el.ltCodeInput.value.trim().toUpperCase();
+  if (code.length !== 6) return toast("Enter a valid 6-character code");
+  el.ltJoinDialog.close();
+  startSession(false);
+  el.ltBarCode.textContent = code;
+  sessionCode = code;
+  toast("Joined session " + code + " 🎧");
+});
+
+// Join dialog — Enter key
+el.ltCodeInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); el.ltJoinBtn.click(); }
+});
+
+// Join dialog — Cancel
+el.ltJoinCancel.addEventListener("click", () => el.ltJoinDialog.close());
+
+// Transfer dialog — Cancel
+el.ltTransferCancel.addEventListener("click", () => {
+  el.ltTransferDialog.close();
+  el.ltHostDialog.showModal();
+});
+
+// Session bar — Copy Code
+el.ltBarCopyCode.addEventListener("click", () => copyToClipboard(sessionCode, "Code"));
+
+// Session bar — Copy Link
+el.ltBarCopyLink.addEventListener("click", () => copyToClipboard(sessionUrl(), "Link"));
+
+// Session bar — Transfer Host
+el.ltBarTransfer.addEventListener("click", () => el.ltTransferDialog.showModal());
+
+// Session bar — Leave
+el.ltBarLeave.addEventListener("click", () => endSession());
+
+// Close any open Listen Together dialog on backdrop click
+document.querySelectorAll(".lt-dialog").forEach((dlg) => {
+  dlg.addEventListener("click", (e) => {
+    if (e.target === dlg) dlg.close();
+  });
 });
 
 // Player controls

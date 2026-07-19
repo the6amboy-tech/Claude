@@ -77,6 +77,27 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           Listen Together
         </button>
+        <div class="lt-session-bar glass" id="lt-session-bar" hidden>
+          <span class="lt-bar-icon">🎧</span>
+          <span class="lt-bar-label">Session</span>
+          <span class="lt-bar-code" id="lt-bar-code"></span>
+          <button class="lt-bar-btn" id="lt-bar-copy-code" title="Copy Code">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Code
+          </button>
+          <button class="lt-bar-btn" id="lt-bar-copy-link" title="Copy Link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            Link
+          </button>
+          <button class="lt-bar-btn" id="lt-bar-transfer" title="Transfer Host">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Transfer
+          </button>
+          <button class="lt-bar-btn lt-bar-leave" id="lt-bar-leave" title="Leave Session">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Leave
+          </button>
+        </div>
         <span class="spacer"></span>
         <label class="lang-wrap glass">
           <span class="lang-label">Language</span>
@@ -220,6 +241,73 @@
       <button class="pill-btn" id="pl-create">Create &amp; add</button>
     </div>
     <button class="pill-btn ghost" id="pl-close">Close</button>
+  </dialog>
+
+  <!-- ======== Listen Together modals ======== -->
+  <!-- Choice modal: Host or Join -->
+  <dialog id="lt-dialog" class="glass lt-dialog">
+    <h3>Listen Together</h3>
+    <p class="lt-subtitle">Start a shared listening session or join one.</p>
+    <div class="lt-options">
+      <button class="lt-option glass" id="lt-host">
+        <span class="lt-option-icon">🎧</span>
+        <span class="lt-option-label">Host a Session</span>
+        <span class="lt-option-desc">Create a session and invite others to listen with you.</span>
+      </button>
+      <button class="lt-option glass" id="lt-join">
+        <span class="lt-option-icon">🔗</span>
+        <span class="lt-option-label">Join a Session</span>
+        <span class="lt-option-desc">Enter a session code to join someone else's session.</span>
+      </button>
+    </div>
+    <button class="pill-btn ghost lt-dialog-close" id="lt-cancel">Cancel</button>
+  </dialog>
+
+  <!-- Host session modal: shows code + actions -->
+  <dialog id="lt-host-dialog" class="glass lt-dialog">
+    <h3>You're hosting</h3>
+    <div class="lt-code-display">
+      <span class="lt-code" id="lt-session-code">------</span>
+    </div>
+    <p class="lt-subtitle">Share this code or link with friends.</p>
+    <div class="lt-host-actions">
+      <button class="pill-btn glass" id="lt-copy-code">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy Code
+      </button>
+      <button class="pill-btn glass" id="lt-copy-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        Copy Link
+      </button>
+      <button class="pill-btn glass" id="lt-transfer-host">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Transfer Host
+      </button>
+      <button class="pill-btn glass lt-leave-btn" id="lt-leave">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Leave
+      </button>
+    </div>
+    <button class="pill-btn ghost lt-dialog-close" id="lt-host-close">Close</button>
+  </dialog>
+
+  <!-- Join session modal: enter code -->
+  <dialog id="lt-join-dialog" class="glass lt-dialog">
+    <h3>Join a Session</h3>
+    <p class="lt-subtitle">Enter the 6-character session code.</p>
+    <div class="lt-join-input-wrap">
+      <input id="lt-code-input" type="text" maxlength="6" placeholder="E.G. AB12CD" autocomplete="off" spellcheck="false" />
+      <button class="pill-btn" id="lt-join-btn">Join</button>
+    </div>
+    <button class="pill-btn ghost lt-dialog-close" id="lt-join-cancel">Cancel</button>
+  </dialog>
+
+  <!-- Transfer host modal -->
+  <dialog id="lt-transfer-dialog" class="glass lt-dialog">
+    <h3>Transfer Host</h3>
+    <p class="lt-subtitle">Choose a listener to become the new host. They will gain full playback control.</p>
+    <p class="lt-empty-participants">No other participants in the session yet.</p>
+    <button class="pill-btn ghost lt-dialog-close" id="lt-transfer-cancel">Cancel</button>
   </dialog>
 
   <div id="toast" role="status"></div>

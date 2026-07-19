@@ -962,6 +962,204 @@ dialog .pill-btn.ghost { width: 100%; justify-content: center; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ================= Listen Together ================= */
+/* Session bar — replaces the Listen Together button when a session is active */
+.lt-session-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  animation: intro 0.4s var(--ease-spring);
+}
+.lt-session-bar[hidden] { display: none; }
+.lt-bar-icon { font-size: 1.1rem; }
+.lt-bar-label {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--text-dim);
+}
+.lt-bar-code {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+  color: var(--accent-2);
+  background: rgba(92, 230, 195, 0.12);
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(92, 230, 195, 0.3);
+}
+.lt-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-dim);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.82rem;
+  transition: background 0.2s, color 0.2s, transform 0.2s var(--ease-spring), border-color 0.2s;
+}
+.lt-bar-btn svg { width: 14px; height: 14px; }
+.lt-bar-btn:hover {
+  background: var(--glass-hover);
+  color: var(--text);
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.lt-bar-btn:active { transform: scale(0.95); }
+.lt-bar-leave:hover {
+  color: #ff6961;
+  border-color: rgba(255, 105, 97, 0.4);
+}
+
+/* Listen Together dialogs */
+.lt-dialog {
+  max-width: 420px;
+  width: 90vw;
+  text-align: center;
+}
+.lt-dialog h3 {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  margin-bottom: 6px;
+}
+.lt-subtitle {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  margin-bottom: 22px;
+  line-height: 1.45;
+}
+.lt-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.lt-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 16px;
+  border-radius: 16px;
+  border: var(--glass-border);
+  background: var(--glass-bg);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.25s, transform 0.25s var(--ease-spring), border-color 0.25s;
+}
+.lt-option:hover {
+  background: var(--glass-hover);
+  transform: translateY(-2px);
+  border-color: rgba(10, 132, 255, 0.4);
+}
+.lt-option:active { transform: scale(0.98); }
+.lt-option-icon { font-size: 1.8rem; flex-shrink: 0; }
+.lt-option-label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  display: block;
+}
+.lt-option-desc {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  font-weight: 400;
+  display: block;
+  margin-top: 2px;
+}
+
+/* Host dialog: code display */
+.lt-code-display {
+  margin: 16px 0 8px;
+}
+.lt-code {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  user-select: all;
+}
+.lt-host-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin: 20px 0 14px;
+}
+.lt-host-actions .pill-btn {
+  font-size: 0.85rem;
+  padding: 9px 16px;
+}
+.lt-leave-btn {
+  background: rgba(255, 105, 97, 0.15) !important;
+  border-color: rgba(255, 105, 97, 0.35) !important;
+  color: #ff6961 !important;
+}
+.lt-leave-btn:hover {
+  background: rgba(255, 105, 97, 0.28) !important;
+  filter: brightness(1.1);
+}
+
+/* Join dialog: code input */
+.lt-join-input-wrap {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+#lt-code-input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: var(--glass-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+#lt-code-input::placeholder {
+  color: var(--text-dim);
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: none;
+}
+#lt-code-input:focus {
+  border-color: rgba(10, 132, 255, 0.6);
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+}
+.lt-join-input-wrap .pill-btn {
+  flex-shrink: 0;
+}
+
+/* Transfer host: empty participants */
+.lt-empty-participants {
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  padding: 18px 0;
+  font-style: italic;
+}
+
+/* Dialog close button shared style */
+.lt-dialog-close {
+  width: 100%;
+  justify-content: center;
+}
+
 /* ================= Reduced motion ================= */
 @media (prefers-reduced-motion: reduce) {
   .btn-float, .bg-orb, .track-eq span, .brand-name, .logo-tile { animation: none; }
