@@ -962,6 +962,64 @@ dialog .pill-btn.ghost { width: 100%; justify-content: center; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ---- Language row sections ---- */
+.trend-row .trend-card:empty { display: none; }
+.trend-row .empty-note {
+  grid-column: 1 / -1;
+  padding: 16px 0;
+}
+
+/* ---- Listen Together participants ---- */
+.lt-participants {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.lt-participant {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+}
+.lt-participant-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: #fff;
+  flex-shrink: 0;
+}
+.lt-participant-name {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.92rem;
+  text-align: left;
+}
+.lt-transfer-btn {
+  font-size: 0.78rem;
+  padding: 5px 12px !important;
+}
+.lt-kick-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50% !important;
+  font-size: 0.8rem;
+  display: grid;
+  place-items: center;
+}
+.lt-kick-btn:hover {
+  color: #ff6961;
+}
+
 /* ================= Listen Together ================= */
 /* Session bar — replaces the Listen Together button when a session is active */
 .lt-session-bar {

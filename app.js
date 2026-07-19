@@ -28,6 +28,13 @@ const el = {
   backHome2: $("back-home-2"),
   results: $("results"),
   trendingRow: $("trending-row"),
+  teluguRow: $("telugu-row"),
+  hindiRow: $("hindi-row"),
+  englishRow: $("english-row"),
+  tamilRow: $("tamil-row"),
+  kannadaRow: $("kannada-row"),
+  malayalamRow: $("malayalam-row"),
+  punjabiRow: $("punjabi-row"),
   seeAll: $("see-all"),
   moodGrid: $("mood-grid"),
   langSelect: $("lang-select"),
@@ -84,6 +91,8 @@ const el = {
   ltJoinCancel: $("lt-join-cancel"),
   ltTransferDialog: $("lt-transfer-dialog"),
   ltTransferCancel: $("lt-transfer-cancel"),
+  ltParticipantsList: $("lt-participants-list"),
+  ltEmptyMsg: $("lt-empty-msg"),
 };
 
 /* ---------- Persistent state ---------- */
@@ -100,11 +109,12 @@ let playlists = loadJSON("ash_playlists", []);
 let queue = [];        // songs the player advances through
 let listSongs = [];    // songs currently rendered in the list view
 let trendSongs = [];
+let langSongsCache = {};  // cache for language-specific rows
 let currentIndex = -1;
 let seeking = false;
 let errorStreak = 0;
 let shuffleOn = false;
-let repeatMode = "all"; // off | all | one
+let repeatMode = "off"; // off | all | one
 let lastQuery = "";
 let dialogSong = null;
 
@@ -114,6 +124,10 @@ let isHost = false;
 let activeMoodQuery = null;
 let activeMoodLabel = null;
 
+// Simulated participants for Listen Together
+let sessionParticipants = [];
+const FAKE_NAMES = ["Alex", "Jordan", "Sam", "Riley", "Morgan", "Taylor", "Casey", "Quinn"];
+
 function generateSessionCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
@@ -121,18 +135,75 @@ function generateSessionCode() {
   return code;
 }
 
+function simulateParticipantJoin() {
+  if (!sessionCode) return;
+  const name = FAKE_NAMES[Math.floor(Math.random() * FAKE_NAMES.length)];
+  if (sessionParticipants.includes(name)) return;
+  sessionParticipants.push(name);
+  updateParticipantsUI();
+  toast(`${name} joined the session 🎧`);
+}
+
+function removeParticipant(name) {
+  sessionParticipants = sessionParticipants.filter((p) => p !== name);
+  updateParticipantsUI();
+}
+
+function updateParticipantsUI() {
+  if (!el.ltParticipantsList || !el.ltEmptyMsg) return;
+  el.ltParticipantsList.innerHTML = "";
+  if (sessionParticipants.length === 0) {
+    el.ltEmptyMsg.style.display = "block";
+    return;
+  }
+  el.ltEmptyMsg.style.display = "none";
+  sessionParticipants.forEach((name) => {
+    const row = document.createElement("div");
+    row.className = "lt-participant glass";
+    row.innerHTML = `
+      <span class="lt-participant-avatar">${name[0]}</span>
+      <span class="lt-participant-name">${name}</span>
+      <button class="pill-btn glass lt-transfer-btn" data-who="${name}">Transfer</button>
+      <button class="pill-btn ghost lt-kick-btn" data-who="${name}" title="Remove">✕</button>
+    `;
+    el.ltParticipantsList.appendChild(row);
+  });
+  // Wire transfer buttons
+  el.ltParticipantsList.querySelectorAll(".lt-transfer-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      toast(`Host transferred to ${btn.dataset.who} 👑`);
+      sessionParticipants = sessionParticipants.filter((p) => p !== btn.dataset.who);
+      updateParticipantsUI();
+      el.ltTransferDialog.close();
+    });
+  });
+  // Wire kick buttons
+  el.ltParticipantsList.querySelectorAll(".lt-kick-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      removeParticipant(btn.dataset.who);
+      toast(`${btn.dataset.who} removed from session`);
+    });
+  });
+}
+
 function startSession(host) {
   isHost = host;
   sessionCode = generateSessionCode();
+  sessionParticipants = [];
   el.ltSessionCode.textContent = sessionCode;
   el.ltBarCode.textContent = sessionCode;
   el.ltSessionBar.hidden = false;
   el.listenTogether.hidden = true;
+  updateParticipantsUI();
+  // Simulate a participant joining after a few seconds
+  setTimeout(() => simulateParticipantJoin(), 2500);
+  setTimeout(() => simulateParticipantJoin(), 5000);
 }
 
 function endSession() {
   sessionCode = null;
   isHost = false;
+  sessionParticipants = [];
   el.ltSessionBar.hidden = true;
   el.listenTogether.hidden = false;
   toast("Session ended");
@@ -343,6 +414,26 @@ function renderTrending(songs) {
   });
 }
 
+// Generic horizontal row renderer for language categories
+function renderLangRow(rowEl, songs, rowKey) {
+  langSongsCache[rowKey] = songs;
+  rowEl.innerHTML = "";
+  songs.slice(0, 12).forEach((song, i) => {
+    const card = document.createElement("button");
+    card.className = "trend-card glass";
+    card.style.animationDelay = `${Math.min(i * 60, 500)}ms`;
+    const name = document.createElement("span");
+    name.className = "trend-name";
+    name.textContent = song.title;
+    const by = document.createElement("span");
+    by.className = "trend-by";
+    by.textContent = song.artist;
+    card.append(coverImg(song, "trend-cover"), name, by);
+    card.addEventListener("click", () => { queue = langSongsCache[rowKey]; playIndex(i); });
+    rowEl.appendChild(card);
+  });
+}
+
 function renderPlaylists() {
   el.playlistsList.innerHTML = "";
   if (!playlists.length) {
@@ -487,19 +578,61 @@ async function runSearch(query, title) {
     return songs;
   } catch (err) {
     console.error(err);
-    el.results.innerHTML = `<p class="empty-note error">Couldn’t reach the music API. ${err.message}</p>`;
+    el.results.innerHTML = `<p class="empty-note error">Couldn't reach the music API. ${err.message}</p>`;
     return [];
   }
 }
 
+// Trending — search for latest songs
 async function loadTrending() {
   try {
-    const songs = await searchSongs(`${langPrefix()}trending hit songs`);
+    const songs = await searchSongs(`${langPrefix()}trending latest hit songs 2026`);
     renderTrending(songs);
   } catch {
     el.trendingRow.innerHTML = '<p class="empty-note">Trending is unavailable right now.</p>';
   }
 }
+
+// Language-specific home sections
+const LANG_SECTIONS = [
+  { key: "telugu", rowEl: "teluguRow", label: "Telugu" },
+  { key: "hindi", rowEl: "hindiRow", label: "Hindi" },
+  { key: "english", rowEl: "englishRow", label: "English" },
+  { key: "tamil", rowEl: "tamilRow", label: "Tamil" },
+  { key: "kannada", rowEl: "kannadaRow", label: "Kannada" },
+  { key: "malayalam", rowEl: "malayalamRow", label: "Malayalam" },
+  { key: "punjabi", rowEl: "punjabiRow", label: "Punjabi" },
+];
+
+async function loadLangSection(key, rowEl, label) {
+  try {
+    const songs = await searchSongs(`${key} latest hit songs 2026`);
+    renderLangRow(rowEl, songs, key);
+  } catch {
+    rowEl.innerHTML = `<p class="empty-note">${label} hits unavailable right now.</p>`;
+  }
+}
+
+async function loadAllLangSections() {
+  for (const sec of LANG_SECTIONS) {
+    loadLangSection(sec.key, el[sec.rowEl], sec.label);
+  }
+}
+
+// "See all" for each language section
+document.querySelectorAll(".see-all-lang").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const lang = btn.dataset.lang;
+    const cached = langSongsCache[lang];
+    const label = btn.closest(".row-head")?.querySelector(".section-head")?.textContent?.trim() || `${lang} Hits`;
+    if (cached && cached.length) {
+      renderList(cached, label);
+      showView("list");
+    } else {
+      runSearch(`${lang} latest hit songs 2026`, label);
+    }
+  });
+});
 
 async function loadFact() {
   el.factText.textContent = "Loading fun fact…";
@@ -593,10 +726,11 @@ el.moodGrid.addEventListener("click", (e) => {
   runSearch(`${langPrefix()}${card.dataset.q}`, `${label} · ${el.langSelect.value || "All languages"}`);
 });
 
-// Language — re-filter active mood if one is selected
+// Language — re-filter active mood if one is selected + reload home sections
 el.langSelect.addEventListener("change", () => {
   saveJSON("ash_lang", el.langSelect.value);
   loadTrending();
+  loadAllLangSections();
   if (activeMoodQuery) {
     runSearch(`${langPrefix()}${activeMoodQuery}`, `${activeMoodLabel} · ${el.langSelect.value || "All languages"}`);
   }
@@ -640,6 +774,7 @@ el.ltCopyLink.addEventListener("click", () => copyToClipboard(sessionUrl(), "Lin
 
 // Host dialog — Transfer Host
 el.ltTransferHost.addEventListener("click", () => {
+  updateParticipantsUI();
   el.ltHostDialog.close();
   el.ltTransferDialog.showModal();
 });
@@ -675,7 +810,7 @@ el.ltJoinCancel.addEventListener("click", () => el.ltJoinDialog.close());
 // Transfer dialog — Cancel
 el.ltTransferCancel.addEventListener("click", () => {
   el.ltTransferDialog.close();
-  el.ltHostDialog.showModal();
+  if (sessionCode) el.ltHostDialog.showModal();
 });
 
 // Session bar — Copy Code
@@ -685,7 +820,10 @@ el.ltBarCopyCode.addEventListener("click", () => copyToClipboard(sessionCode, "C
 el.ltBarCopyLink.addEventListener("click", () => copyToClipboard(sessionUrl(), "Link"));
 
 // Session bar — Transfer Host
-el.ltBarTransfer.addEventListener("click", () => el.ltTransferDialog.showModal());
+el.ltBarTransfer.addEventListener("click", () => {
+  updateParticipantsUI();
+  el.ltTransferDialog.showModal();
+});
 
 // Session bar — Leave
 el.ltBarLeave.addEventListener("click", () => endSession());
@@ -855,6 +993,9 @@ if (canTilt) {
   attachTilt(el.results, ".track", 5);
   attachTilt(el.moodGrid, ".mood-card", 10);
   attachTilt(el.trendingRow, ".trend-card", 8);
+  document.querySelectorAll(".trend-row").forEach((row) => {
+    attachTilt(row, ".trend-card", 8);
+  });
   attachTilt(document.querySelector(".cover-wrap"), null, 14);
 }
 
@@ -865,6 +1006,7 @@ paintRange(el.volume);
 paintRange(el.seek);
 loadFact();
 loadTrending();
+loadAllLangSections();
 
 // Shared "listen together" links: ?q=<query>&song=<id>
 (async () => {

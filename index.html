@@ -139,6 +139,48 @@
           <button class="link-btn" id="see-all">See all</button>
         </div>
         <div class="trend-row" id="trending-row"></div>
+
+        <div class="row-head">
+          <h2 class="section-head"><span class="head-bar"></span>🪷 Telugu Hits</h2>
+          <button class="link-btn see-all-lang" data-lang="telugu">See all</button>
+        </div>
+        <div class="trend-row" id="telugu-row"></div>
+
+        <div class="row-head">
+          <h2 class="section-head"><span class="head-bar"></span>🎵 Hindi Hits</h2>
+          <button class="link-btn see-all-lang" data-lang="hindi">See all</button>
+        </div>
+        <div class="trend-row" id="hindi-row"></div>
+
+        <div class="row-head">
+          <h2 class="section-head"><span class="head-bar"></span>🎤 English Hits</h2>
+          <button class="link-btn see-all-lang" data-lang="english">See all</button>
+        </div>
+        <div class="trend-row" id="english-row"></div>
+
+        <div class="row-head">
+          <h2 class="section-head"><span class="head-bar"></span>🎬 Tamil Hits</h2>
+          <button class="link-btn see-all-lang" data-lang="tamil">See all</button>
+        </div>
+        <div class="trend-row" id="tamil-row"></div>
+
+        <div class="row-head">
+          <h2 class="section-head"><span class="head-bar"></span>🎶 Kannada Hits</h2>
+          <button class="link-btn see-all-lang" data-lang="kannada">See all</button>
+        </div>
+        <div class="trend-row" id="kannada-row"></div>
+
+        <div class="row-head">
+          <h2 class="section-head"><span class="head-bar"></span>🌴 Malayalam Hits</h2>
+          <button class="link-btn see-all-lang" data-lang="malayalam">See all</button>
+        </div>
+        <div class="trend-row" id="malayalam-row"></div>
+
+        <div class="row-head">
+          <h2 class="section-head"><span class="head-bar"></span>🎸 Punjabi Hits</h2>
+          <button class="link-btn see-all-lang" data-lang="punjabi">See all</button>
+        </div>
+        <div class="trend-row" id="punjabi-row"></div>
       </section>
 
       <!-- ---- List view (results / mood / favorites / playlist) ---- -->
@@ -306,7 +348,8 @@
   <dialog id="lt-transfer-dialog" class="glass lt-dialog">
     <h3>Transfer Host</h3>
     <p class="lt-subtitle">Choose a listener to become the new host. They will gain full playback control.</p>
-    <p class="lt-empty-participants">No other participants in the session yet.</p>
+    <div id="lt-participants-list" class="lt-participants"></div>
+    <p class="lt-empty-participants" id="lt-empty-msg">No other participants in the session yet.</p>
     <button class="pill-btn ghost lt-dialog-close" id="lt-transfer-cancel">Cancel</button>
   </dialog>
 
