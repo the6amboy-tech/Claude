@@ -183,7 +183,8 @@ function updateParticipantsUI() {
     return;
   }
   el.ltEmptyMsg.style.display = "none";
-  sessionParticipants.forEach((name, id) => {
+  const entries = [...sessionParticipants.entries()];
+  entries.slice(0, 30).forEach(([id, name]) => {
     const row = document.createElement("div");
     row.className = "lt-participant glass";
     row.innerHTML = `
@@ -193,6 +194,12 @@ function updateParticipantsUI() {
     `;
     el.ltParticipantsList.appendChild(row);
   });
+  if (entries.length > 30) {
+    const more = document.createElement("p");
+    more.className = "empty-note";
+    more.textContent = `…and ${entries.length - 30} more listeners`;
+    el.ltParticipantsList.appendChild(more);
+  }
   el.ltParticipantsList.querySelectorAll(".lt-transfer-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const id = btn.dataset.who;
@@ -243,7 +250,7 @@ function ltConnect() {
   client.on("connect", () => {
     client.subscribe(ltTopic(sessionCode));
     ltPublish({ t: "hello" });
-    if (isHost) ltBroadcastState();
+    if (isHost) ltBroadcastState(true);
     toast(isHost ? `Hosting · ${sessionCode}` : `Joined · ${sessionCode} 🎧`);
   });
   client.on("message", (_topic, payload) => {
@@ -251,8 +258,15 @@ function ltConnect() {
     if (msg.from === myClientId) return;
     ltHandle(msg);
   });
-  ltHeartbeat = setInterval(() => ltPublish({ t: "ping" }), 5000);
-  ltPruneTimer = setInterval(ltPrune, 6000);
+  // Presence at scale: the host pings every 10s, guests only every 30s.
+  // A 1000-listener session stays a trickle (~35 msgs/s fan-in) instead of
+  // a flood (200/s at the old 5s cadence).
+  let tick = 0;
+  ltHeartbeat = setInterval(() => {
+    tick++;
+    if (isHost || tick % 3 === 0) ltPublish({ t: "ping" });
+  }, 10000);
+  ltPruneTimer = setInterval(ltPrune, 30000);
 }
 
 function ltPublish(obj) {
@@ -270,11 +284,24 @@ function broadcastHostEvent(msg) {
   ltPublish({ t: "ctl", msg });
 }
 
-function ltBroadcastState() {
+let ltLastStateSend = 0;
+function ltBroadcastState(force = false) {
   const song = queue[currentIndex];
   if (!song) return;
+  // Throttled so a storm of joiners doesn't make the host re-blast state
+  // for every single hello.
+  const now = Date.now();
+  if (!force && now - ltLastStateSend < 1200) return;
+  ltLastStateSend = now;
   broadcastHostEvent({ type: "songChange", songId: song.id, currentTime: el.audio.currentTime });
   broadcastHostEvent({ type: el.audio.paused ? "pause" : "play" });
+}
+
+// Cheap per-message bookkeeping: only the counter updates on every message;
+// the full participant list rebuilds only while the transfer dialog is open.
+function ltRefreshUI() {
+  updateSessionBarCount();
+  if (el.ltTransferDialog.open) updateParticipantsUI();
 }
 
 function ltHandle(msg) {
@@ -283,17 +310,17 @@ function ltHandle(msg) {
     sessionParticipants.set(msg.from, msg.name || "Listener");
     ltLastSeen.set(msg.from, Date.now());
     if (!known && msg.t === "hello") {
-      toast(`${msg.name || "A listener"} joined 🎧`);
-      if (isHost) ltBroadcastState(); // catch the newcomer up
+      if (sessionParticipants.size <= 8) toast(`${msg.name || "A listener"} joined 🎧`);
+      if (isHost) ltBroadcastState(); // catch newcomers up (throttled)
     }
-    updateParticipantsUI();
+    ltRefreshUI();
   }
-  if (msg.t === "bye") { sessionParticipants.delete(msg.from); updateParticipantsUI(); return; }
+  if (msg.t === "bye") { sessionParticipants.delete(msg.from); ltRefreshUI(); return; }
   if (msg.t === "host") {
     isHost = msg.to === myClientId;
-    if (isHost) { toast("You are now the host 👑"); ltBroadcastState(); }
+    if (isHost) { toast("You are now the host 👑"); ltBroadcastState(true); }
     else toast("Host changed");
-    updateParticipantsUI();
+    ltRefreshUI();
     return;
   }
   if (msg.t === "ctl" && !isHost) applyRemoteControl(msg.msg);
@@ -321,17 +348,17 @@ function applyRemoteControl(m) {
 }
 
 function ltPrune() {
-  // presence is refreshed by 5s pings; drop anyone silent for 16s
+  // guests ping every ~30s; drop anyone silent for 95s
   const now = Date.now();
   let changed = false;
   sessionParticipants.forEach((_n, id) => {
-    if (now - (ltLastSeen.get(id) || 0) > 16000) {
+    if (now - (ltLastSeen.get(id) || 0) > 95000) {
       sessionParticipants.delete(id);
       ltLastSeen.delete(id);
       changed = true;
     }
   });
-  if (changed) updateParticipantsUI();
+  if (changed) ltRefreshUI();
 }
 
 function sessionUrl() {
@@ -405,13 +432,103 @@ function normalizeSong(song) {
   };
 }
 
-async function searchSongs(query, limit = 25) {
-  const url = `${API_BASE}/api/search/songs?query=${encodeURIComponent(query)}&limit=${limit}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`API responded with ${res.status}`);
-  const json = await res.json();
-  const results = json.data?.results || json.results || [];
-  return results.map(normalizeSong).filter((s) => s.streamUrl);
+/* ---------- Hardened API layer ----------
+   Goals: never hammer the API (concurrency cap + request dedupe + caching),
+   and never leave the UI empty on a hiccup (retries + stale-cache fallback).
+   This is what keeps the site healthy under heavy simultaneous use. */
+const API_TTL = 10 * 60 * 1000;          // searches: 10 minutes
+const API_TTL_LONG = 6 * 60 * 60 * 1000; // home rails / curated seeds: 6 hours
+const API_MAX_CONCURRENT = 4;
+const apiInflight = new Map();
+let apiActive = 0;
+const apiWaiters = [];
+
+function apiSlot() {
+  if (apiActive < API_MAX_CONCURRENT) { apiActive++; return Promise.resolve(); }
+  return new Promise((res) => apiWaiters.push(res));
+}
+function apiRelease() {
+  const next = apiWaiters.shift();
+  if (next) next(); // slot passes directly to the next waiter
+  else apiActive--;
+}
+
+function apiCacheGet(key) {
+  try { const raw = localStorage.getItem("ashc:" + key); return raw ? JSON.parse(raw) : null; }
+  catch { return null; }
+}
+function apiCacheSet(key, data) {
+  try { localStorage.setItem("ashc:" + key, JSON.stringify({ ts: Date.now(), data })); }
+  catch {
+    // storage full — drop our cache namespace and retry once
+    try {
+      Object.keys(localStorage).filter((k) => k.startsWith("ashc:")).forEach((k) => localStorage.removeItem(k));
+      localStorage.setItem("ashc:" + key, JSON.stringify({ ts: Date.now(), data }));
+    } catch {}
+  }
+}
+function apiCachePrune() {
+  try {
+    const keys = Object.keys(localStorage).filter((k) => k.startsWith("ashc:"));
+    if (keys.length <= 80) return;
+    keys.map((k) => [k, (JSON.parse(localStorage.getItem(k)) || {}).ts || 0])
+      .sort((a, b) => a[1] - b[1])
+      .slice(0, keys.length - 60)
+      .forEach(([k]) => localStorage.removeItem(k));
+  } catch {}
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Up to 3 attempts with backoff+jitter; retries only on network errors,
+// 429 (rate limited) and 5xx. 12s timeout per attempt.
+async function fetchWithRetry(url) {
+  const delays = [0, 700, 2100];
+  let lastErr;
+  for (const base of delays) {
+    if (base) await sleep(base + Math.random() * 300);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 12000);
+    try {
+      const res = await fetch(url, { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (res.ok) return res.json();
+      lastErr = new Error(`API responded with ${res.status}`);
+      if (res.status !== 429 && res.status < 500) throw lastErr;
+    } catch (e) {
+      clearTimeout(timer);
+      if (e === lastErr) throw e; // non-retryable 4xx
+      lastErr = e;
+    }
+  }
+  throw lastErr;
+}
+
+async function searchSongs(query, limit = 25, ttl = API_TTL) {
+  const key = `${limit}:${query.trim().toLowerCase()}`;
+  const cached = apiCacheGet(key);
+  if (cached && Date.now() - cached.ts < ttl) return cached.data;
+
+  if (apiInflight.has(key)) return apiInflight.get(key);
+  const p = (async () => {
+    await apiSlot();
+    try {
+      const url = `${API_BASE}/api/search/songs?query=${encodeURIComponent(query)}&limit=${limit}`;
+      const json = await fetchWithRetry(url);
+      const results = json.data?.results || json.results || [];
+      const songs = results.map(normalizeSong).filter((s) => s.streamUrl);
+      if (songs.length) { apiCacheSet(key, songs); apiCachePrune(); }
+      return songs;
+    } catch (err) {
+      if (cached) return cached.data; // stale data beats an empty screen
+      throw err;
+    } finally {
+      apiRelease();
+      apiInflight.delete(key);
+    }
+  })();
+  apiInflight.set(key, p);
+  return p;
 }
 
 const langPrefix = () => (el.langSelect.value ? `${el.langSelect.value} ` : "");
@@ -877,7 +994,16 @@ async function runSearch(query, title, fallbackQuery) {
     return songs;
   } catch (err) {
     console.error(err);
-    el.results.innerHTML = `<p class="empty-note error">Couldn't reach the music API. ${err.message}</p>`;
+    el.results.innerHTML = "";
+    const note = document.createElement("p");
+    note.className = "empty-note error";
+    note.textContent = "Couldn't reach the music API right now. ";
+    const retry = document.createElement("button");
+    retry.className = "pill-btn ghost";
+    retry.textContent = "↻ Retry";
+    retry.addEventListener("click", () => runSearch(query, title, fallbackQuery));
+    note.appendChild(retry);
+    el.results.appendChild(note);
     return [];
   }
 }
@@ -887,23 +1013,19 @@ async function runSearch(query, title, fallbackQuery) {
 // page loads don't hammer the API (which rate-limits and empties the UI).
 async function loadTrending() {
   try {
-    let famous = [];
-    const cache = loadJSON("ash_trend_cache", null);
-    if (cache && Date.now() - cache.ts < 6 * 3600 * 1000 && cache.songs?.length) {
-      famous = cache.songs;
-    } else {
-      const picks = await Promise.allSettled(
-        FAMOUS_HITS.slice(0, 8).map((q) => searchSongs(q, 2))
-      );
-      for (const p of picks) {
-        const first = p.status === "fulfilled" ? p.value[0] : null;
-        if (first && !famous.some((s) => s.id === first.id)) famous.push(first);
-      }
-      if (famous.length) saveJSON("ash_trend_cache", { ts: Date.now(), songs: famous });
+    // Curated seeds are individually cached for 6h by the API layer, and the
+    // concurrency cap keeps first-load requests to a slow trickle.
+    const picks = await Promise.allSettled(
+      FAMOUS_HITS.slice(0, 8).map((q) => searchSongs(q, 2, API_TTL_LONG))
+    );
+    const famous = [];
+    for (const p of picks) {
+      const first = p.status === "fulfilled" ? p.value[0] : null;
+      if (first && !famous.some((s) => s.id === first.id)) famous.push(first);
     }
     const seen = new Set(famous.map((s) => s.id));
     const songs = [...famous];
-    const extra = await searchSongs(`${langPrefix()}trending latest hit songs 2026`, 20);
+    const extra = await searchSongs(`${langPrefix()}trending latest hit songs 2026`, 20, API_TTL_LONG);
     for (const s of extra) if (!seen.has(s.id)) { seen.add(s.id); songs.push(s); }
     renderTrending(songs);
   } catch {
@@ -924,7 +1046,7 @@ const LANG_SECTIONS = [
 
 async function loadLangSection(key, rowEl, label) {
   try {
-    const songs = await searchSongs(`${key} latest hit songs 2026`, 12);
+    const songs = await searchSongs(`${key} latest hit songs 2026`, 12, API_TTL_LONG);
     renderLangRow(rowEl, songs, key);
   } catch {
     rowEl.innerHTML = `<p class="empty-note">${label} hits unavailable right now.</p>`;
@@ -1429,6 +1551,16 @@ if (canTilt) {
 }
 
 /* ---------- Boot ---------- */
+
+// Safety net: an unexpected async failure logs quietly instead of surfacing
+// as a broken page; at most one toast per 10s so users aren't spammed.
+let lastErrToast = 0;
+window.addEventListener("unhandledrejection", (e) => {
+  console.warn("Recovered from async error:", e.reason);
+  e.preventDefault();
+  const now = Date.now();
+  if (now - lastErrToast > 10000) { lastErrToast = now; toast("Something hiccuped — retrying usually fixes it"); }
+});
 
 el.audio.volume = Number(el.volume.value);
 paintRange(el.volume);
