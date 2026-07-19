@@ -112,7 +112,12 @@ button { font: inherit; color: inherit; }
   50%      { transform: translateY(-10px) rotate(2deg); }
 }
 
-.brand-xl { font-size: clamp(3rem, 9vw, 4.4rem) !important; }
+.brand-xl {
+  font-family: "Syne", var(--font-display);
+  font-weight: 800;
+  font-size: clamp(3rem, 9vw, 4.4rem) !important;
+  letter-spacing: -0.06em;
+}
 
 .mode-cards {
   display: grid;
@@ -176,9 +181,9 @@ button { font: inherit; color: inherit; }
 .side-brand { padding: 0 8px; }
 
 .brand-name {
-  font-family: var(--font-display);
+  font-family: "Syne", var(--font-display);
   font-size: 1.6rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 1.05;
   background: linear-gradient(110deg,
@@ -1240,6 +1245,150 @@ dialog .pill-btn.ghost { width: 100%; justify-content: center; }
 .lt-dialog-close {
   width: 100%;
   justify-content: center;
+}
+
+/* ================= Queue view ================= */
+.queue-section {
+  margin-bottom: 24px;
+}
+.queue-label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+  padding-left: 4px;
+}
+.queue-track {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur) saturate(1.6);
+  -webkit-backdrop-filter: var(--glass-blur) saturate(1.6);
+  border: var(--glass-border);
+  margin-bottom: 8px;
+  transition: background 0.25s, transform 0.25s var(--ease-spring);
+  animation: card-in 0.5s var(--ease-spring) backwards;
+}
+.queue-track:hover {
+  background: var(--glass-hover);
+  transform: translateX(3px);
+}
+.queue-track.active {
+  border-color: rgba(10, 132, 255, 0.5);
+  background: linear-gradient(90deg, rgba(10, 132, 255, 0.18), rgba(92, 230, 195, 0.06));
+}
+.queue-track-num {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.queue-track-cover {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.queue-track-info {
+  flex: 1;
+  min-width: 0;
+}
+.queue-track-name {
+  font-weight: 600;
+  font-size: 0.92rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.queue-track-by {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.queue-remove {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-dim);
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: color 0.2s, background 0.2s, transform 0.2s;
+}
+.queue-remove:hover {
+  color: #ff6961;
+  background: rgba(255, 105, 97, 0.15);
+  transform: scale(1.1);
+}
+#btn-queue.lit {
+  color: var(--accent-2);
+}
+
+/* ================= Creator section ================= */
+.creator-section {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 22px 24px;
+  border-radius: 20px;
+  margin-top: 40px;
+  margin-bottom: 20px;
+  animation: card-in 0.7s var(--ease-spring) backwards;
+}
+.creator-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  display: grid;
+  place-items: center;
+  font-family: "Syne", var(--font-display);
+  font-weight: 800;
+  font-size: 1.5rem;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 8px 20px rgba(10, 132, 255, 0.35);
+}
+.creator-info { flex: 1; min-width: 0; }
+.creator-name {
+  font-family: "Syne", var(--font-display);
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+  background: linear-gradient(110deg, #ffffff 30%, #a9f0dd 60%, #9fd0ff 80%);
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 7s linear infinite;
+}
+.creator-bio {
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  font-weight: 300;
+}
+@media (max-width: 600px) {
+  .creator-section { flex-direction: column; text-align: center; padding: 20px 18px; }
+  .creator-avatar { width: 48px; height: 48px; font-size: 1.25rem; }
 }
 
 /* ================= Reduced motion ================= */

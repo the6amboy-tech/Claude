@@ -93,6 +93,13 @@ const el = {
   ltTransferCancel: $("lt-transfer-cancel"),
   ltParticipantsList: $("lt-participants-list"),
   ltEmptyMsg: $("lt-empty-msg"),
+  viewQueue: $("view-queue"),
+  backHome3: $("back-home-3"),
+  clearQueue: $("clear-queue"),
+  queueNowPlaying: $("queue-now-playing"),
+  queueNextUp: $("queue-next-up"),
+  queueRemaining: $("queue-remaining"),
+  btnQueue: $("btn-queue"),
 };
 
 /* ---------- Persistent state ---------- */
@@ -107,6 +114,7 @@ let favs = loadJSON("ash_favs", []);
 let playlists = loadJSON("ash_playlists", []);
 
 let queue = [];        // songs the player advances through
+let playNextQueue = []; // songs queued to play after current track
 let listSongs = [];    // songs currently rendered in the list view
 let trendSongs = [];
 let langSongsCache = {};  // cache for language-specific rows
@@ -195,6 +203,7 @@ function startSession(host) {
   el.ltSessionBar.hidden = false;
   el.listenTogether.hidden = true;
   updateParticipantsUI();
+  openSessionChannel();
   // Simulate a participant joining after a few seconds
   setTimeout(() => simulateParticipantJoin(), 2500);
   setTimeout(() => simulateParticipantJoin(), 5000);
@@ -206,7 +215,40 @@ function endSession() {
   sessionParticipants = [];
   el.ltSessionBar.hidden = true;
   el.listenTogether.hidden = false;
+  if (ltChannel) { ltChannel.close(); ltChannel = null; }
   toast("Session ended");
+}
+
+/* ---------- Listen Together sync (BroadcastChannel) ---------- */
+
+let ltChannel = null;
+
+function openSessionChannel() {
+  if (ltChannel) ltChannel.close();
+  if (!sessionCode) return;
+  ltChannel = new BroadcastChannel(`asharas-session-${sessionCode}`);
+  ltChannel.onmessage = (e) => {
+    if (isHost) return; // host ignores incoming
+    const msg = e.data;
+    if (msg.type === "songChange") {
+      const idx = queue.findIndex((s) => s.id === msg.songId);
+      if (idx !== -1) {
+        queue = queue;
+        playIndex(idx);
+        if (typeof msg.currentTime === "number") el.audio.currentTime = msg.currentTime;
+      }
+    } else if (msg.type === "play") {
+      el.audio.play().catch(() => {});
+    } else if (msg.type === "pause") {
+      el.audio.pause();
+    } else if (msg.type === "seek" && typeof msg.time === "number") {
+      el.audio.currentTime = msg.time;
+    }
+  };
+}
+
+function broadcastHostEvent(msg) {
+  if (isHost && ltChannel) ltChannel.postMessage(msg);
 }
 
 function sessionUrl() {
@@ -287,8 +329,15 @@ const langPrefix = () => (el.langSelect.value ? `${el.langSelect.value} ` : "");
 function showView(name) {
   el.viewHome.hidden = name !== "home";
   el.viewList.hidden = name !== "list";
+  el.viewQueue.hidden = name !== "queue";
   el.viewPlaylists.hidden = name !== "playlists";
-  el.navBtns.forEach((b) => b.classList.toggle("active", b.dataset.nav === name || (name === "list" && b.dataset.nav === "home")));
+  el.navBtns.forEach((b) => {
+    const nav = b.dataset.nav;
+    let active = nav === name;
+    if (name === "list") active = nav === "home";
+    if (name === "queue") active = nav === "queue";
+    b.classList.toggle("active", active);
+  });
 }
 
 function toast(msg) {
@@ -388,7 +437,18 @@ function renderList(songs, title) {
     addBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/><path d="M19 15v6"/><path d="M16 18h6"/></svg>';
     addBtn.addEventListener("click", (e) => { e.stopPropagation(); openAddDialog(song); });
 
-    li.append(coverImg(song, "track-cover"), info, eq, dur, favBtn, addBtn);
+    const queueBtn = document.createElement("button");
+    queueBtn.className = "row-btn";
+    queueBtn.title = "Play next";
+    queueBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>';
+    queueBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      playNextQueue.push(song);
+      toast(`Added to queue: ${song.title}`);
+      updateQueueUI();
+    });
+
+    li.append(coverImg(song, "track-cover"), info, eq, dur, favBtn, addBtn, queueBtn);
     li.addEventListener("click", () => { queue = listSongs; playIndex(i); });
     el.results.appendChild(li);
   });
@@ -481,6 +541,111 @@ function renderPlaylists() {
   });
 }
 
+/* ---------- Queue rendering ---------- */
+
+function renderQueue() {
+  const current = queue[currentIndex];
+  el.queueNowPlaying.innerHTML = "";
+  el.queueNextUp.innerHTML = "";
+  el.queueRemaining.innerHTML = "";
+
+  // Now playing
+  if (current) {
+    const label = document.createElement("div");
+    label.className = "queue-label";
+    label.textContent = "Now Playing";
+    el.queueNowPlaying.appendChild(label);
+    el.queueNowPlaying.appendChild(makeQueueTrack(current, currentIndex, true));
+  }
+
+  // Play next queue
+  if (playNextQueue.length) {
+    const label = document.createElement("div");
+    label.className = "queue-label";
+    label.textContent = `Next Up (${playNextQueue.length})`;
+    el.queueNextUp.appendChild(label);
+    playNextQueue.forEach((song, i) => {
+      el.queueNextUp.appendChild(makeQueueTrack(song, -1, false, () => {
+        playNextQueue.splice(i, 1);
+        renderQueue();
+        toast("Removed from queue");
+      }));
+    });
+  }
+
+  // Remaining from main queue
+  const remaining = queue.slice(currentIndex + 1);
+  if (remaining.length) {
+    const label = document.createElement("div");
+    label.className = "queue-label";
+    label.textContent = `Remaining (${remaining.length})`;
+    el.queueRemaining.appendChild(label);
+    remaining.forEach((song, i) => {
+      const globalIdx = currentIndex + 1 + i;
+      el.queueRemaining.appendChild(makeQueueTrack(song, globalIdx, false, () => {
+        queue.splice(globalIdx, 1);
+        if (globalIdx < currentIndex) currentIndex--;
+        renderQueue();
+        toast("Removed from queue");
+      }));
+    });
+  }
+
+  // Empty state
+  if (!current && !playNextQueue.length && !remaining.length) {
+    el.queueNowPlaying.innerHTML = '<p class="empty-note">Queue is empty. Play a song or add tracks with the ⏩ button.</p>';
+  }
+
+  updateQueueBtn();
+}
+
+function makeQueueTrack(song, idx, isCurrent, onRemove) {
+  const row = document.createElement("div");
+  row.className = "queue-track" + (isCurrent ? " active" : "");
+
+  const num = document.createElement("span");
+  num.className = "queue-track-num";
+  num.textContent = isCurrent ? "▶" : (idx >= 0 ? idx + 1 : "•");
+
+  const img = coverImg(song, "queue-track-cover");
+
+  const info = document.createElement("div");
+  info.className = "queue-track-info";
+  const name = document.createElement("div");
+  name.className = "queue-track-name";
+  name.textContent = song.title;
+  const by = document.createElement("div");
+  by.className = "queue-track-by";
+  by.textContent = song.artist;
+  info.append(name, by);
+
+  row.append(num, img, info);
+
+  if (onRemove) {
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "queue-remove";
+    removeBtn.title = "Remove from queue";
+    removeBtn.textContent = "✕";
+    removeBtn.addEventListener("click", (e) => { e.stopPropagation(); onRemove(); });
+    row.appendChild(removeBtn);
+  }
+
+  if (!isCurrent && idx >= 0) {
+    row.addEventListener("click", () => { queue = queue; playIndex(idx); renderQueue(); });
+  }
+
+  return row;
+}
+
+function updateQueueUI() {
+  updateQueueBtn();
+  if (!el.viewQueue.hidden) renderQueue();
+}
+
+function updateQueueBtn() {
+  el.btnQueue.classList.toggle("lit", playNextQueue.length > 0);
+}
+
 function markActive() {
   const current = queue[currentIndex];
   el.results.querySelectorAll(".track").forEach((li) => {
@@ -511,6 +676,10 @@ function playIndex(i) {
   el.player.setAttribute("aria-hidden", "false");
   markActive();
   syncFavUI();
+  updateQueueUI();
+
+  // Broadcast song change to session participants
+  broadcastHostEvent({ type: "songChange", songId: song.id, currentTime: 0 });
 
   if ("mediaSession" in navigator) {
     navigator.mediaSession.metadata = new MediaMetadata({
@@ -532,6 +701,15 @@ function randomIndex() {
 }
 
 function playNext() {
+  // Play from the play-next queue first
+  if (playNextQueue.length) {
+    const nextSong = playNextQueue.shift();
+    // Insert into main queue right after current position and play it
+    queue.splice(currentIndex + 1, 0, nextSong);
+    playIndex(currentIndex + 1);
+    updateQueueUI();
+    return;
+  }
   if (!queue.length) return;
   playIndex(shuffleOn ? randomIndex() : (currentIndex + 1) % queue.length);
 }
@@ -583,10 +761,17 @@ async function runSearch(query, title) {
   }
 }
 
-// Trending — search for latest songs
+// Trending — search for latest songs (fresh every load via varied queries)
 async function loadTrending() {
+  const queries = [
+    `${langPrefix()}trending latest hit songs 2026`,
+    `${langPrefix()}top charts new songs 2026`,
+    `${langPrefix()}viral hits new music 2026`,
+    `${langPrefix()}most played songs right now`,
+  ];
+  const query = queries[Math.floor(Math.random() * queries.length)];
   try {
-    const songs = await searchSongs(`${langPrefix()}trending latest hit songs 2026`);
+    const songs = await searchSongs(query);
     renderTrending(songs);
   } catch {
     el.trendingRow.innerHTML = '<p class="empty-note">Trending is unavailable right now.</p>';
@@ -696,11 +881,13 @@ el.navBtns.forEach((btn) =>
     if (nav === "home") showView("home");
     else if (nav === "search") { showView("home"); el.input.focus(); window.scrollTo({ top: 0, behavior: "smooth" }); }
     else if (nav === "favorites") { activeMoodQuery = null; activeMoodLabel = null; renderList(favs, "Favorites"); showView("list"); }
+    else if (nav === "queue") { renderQueue(); showView("queue"); }
     else if (nav === "playlists") { activeMoodQuery = null; activeMoodLabel = null; renderPlaylists(); showView("playlists"); }
   })
 );
 el.backHome.addEventListener("click", () => showView("home"));
 el.backHome2.addEventListener("click", () => showView("home"));
+el.backHome3.addEventListener("click", () => showView("home"));
 
 // Search
 el.form.addEventListener("submit", (e) => {
@@ -886,6 +1073,20 @@ el.btnDim.addEventListener("click", () => {
   saveJSON("ash_dim", on);
 });
 
+// Queue toggle button in player bar
+el.btnQueue.addEventListener("click", () => {
+  renderQueue();
+  showView("queue");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+// Clear queue
+el.clearQueue.addEventListener("click", () => {
+  playNextQueue = [];
+  renderQueue();
+  toast("Queue cleared");
+});
+
 // Playlist creation (playlists view + dialog)
 function createPlaylist(name) {
   name = name.trim();
@@ -909,8 +1110,16 @@ el.plCreate.addEventListener("click", () => {
 el.plClose.addEventListener("click", () => el.plDialog.close());
 
 // Audio element
-el.audio.addEventListener("play", () => { el.player.classList.add("playing"); markActive(); });
-el.audio.addEventListener("pause", () => { el.player.classList.remove("playing"); markActive(); });
+el.audio.addEventListener("play", () => {
+  el.player.classList.add("playing");
+  markActive();
+  broadcastHostEvent({ type: "play" });
+});
+el.audio.addEventListener("pause", () => {
+  el.player.classList.remove("playing");
+  markActive();
+  broadcastHostEvent({ type: "pause" });
+});
 el.audio.addEventListener("playing", () => { errorStreak = 0; });
 el.audio.addEventListener("ended", onEnded);
 el.audio.addEventListener("error", () => {
@@ -941,6 +1150,7 @@ el.seek.addEventListener("input", () => {
 el.seek.addEventListener("change", () => {
   el.audio.currentTime = Number(el.seek.value);
   seeking = false;
+  broadcastHostEvent({ type: "seek", time: el.audio.currentTime });
 });
 
 el.volume.addEventListener("input", () => {

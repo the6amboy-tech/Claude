@@ -7,7 +7,7 @@
   <title>Asharas</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎧</text></svg>" />
 </head>
@@ -54,6 +54,10 @@
         <button class="nav-btn" data-nav="favorites">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.6-9.5-8.5C.6 9 2.6 5.5 6 5.5c2 0 3.4 1.1 4 2.2.6-1.1 2-2.2 4-2.2 3.4 0 5.4 3.5 3.5 7C19 16.4 12 21 12 21z"/></svg>
           Favorites
+        </button>
+        <button class="nav-btn" data-nav="queue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15V6"/><path d="M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path d="M12 12H3"/><path d="M16 6H3"/><path d="M12 18H3"/></svg>
+          Queue
         </button>
         <button class="nav-btn" data-nav="playlists">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg>
@@ -181,6 +185,15 @@
           <button class="link-btn see-all-lang" data-lang="punjabi">See all</button>
         </div>
         <div class="trend-row" id="punjabi-row"></div>
+
+        <!-- Made by Karthik -->
+        <div class="creator-section glass">
+          <div class="creator-avatar">K</div>
+          <div class="creator-info">
+            <h3 class="creator-name">Made by Karthik</h3>
+            <p class="creator-bio">Hey! I'm Karthik — 18 years old with a non-tech background. I taught myself coding, API integration, and web design out of pure passion for tech. Asharas is my contribution to music 🪷</p>
+          </div>
+        </div>
       </section>
 
       <!-- ---- List view (results / mood / favorites / playlist) ---- -->
@@ -190,6 +203,19 @@
           <h2 class="section-head" id="list-title">Results</h2>
         </div>
         <ul id="results" class="results"></ul>
+      </section>
+
+      <!-- ---- Queue view ---- -->
+      <section id="view-queue" hidden>
+        <div class="list-head">
+          <button class="pill-btn glass" id="back-home-3">← Home</button>
+          <h2 class="section-head">Play Queue</h2>
+          <span class="spacer"></span>
+          <button class="pill-btn ghost" id="clear-queue">Clear</button>
+        </div>
+        <div id="queue-now-playing" class="queue-section"></div>
+        <div id="queue-next-up" class="queue-section"></div>
+        <div id="queue-remaining" class="queue-section"></div>
       </section>
 
       <!-- ---- Playlists view ---- -->
@@ -254,6 +280,9 @@
     </div>
 
     <div class="player-right">
+      <button id="btn-queue" class="mini-btn" title="View Queue" aria-label="View queue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15V6"/><path d="M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path d="M12 12H3"/><path d="M16 6H3"/><path d="M12 18H3"/></svg>
+      </button>
       <button id="btn-fav" class="mini-btn" title="Add to favorites" aria-label="Toggle favorite">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.6-9.5-8.5C.6 9 2.6 5.5 6 5.5c2 0 3.4 1.1 4 2.2.6-1.1 2-2.2 4-2.2 3.4 0 5.4 3.5 3.5 7C19 16.4 12 21 12 21z"/></svg>
       </button>
