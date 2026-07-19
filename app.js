@@ -858,15 +858,27 @@ el.btnFav.addEventListener("click", () => {
   if (song) toggleFav(song);
 });
 
-el.btnDownload.addEventListener("click", () => {
+el.btnDownload.addEventListener("click", async () => {
   const song = queue[currentIndex];
   if (!song) return;
-  const a = document.createElement("a");
-  a.href = song.streamUrl;
-  a.download = `${song.title}.mp3`;
-  a.target = "_blank";
-  a.rel = "noopener";
-  a.click();
+  toast("Downloading…");
+  try {
+    const res = await fetch(song.streamUrl);
+    if (!res.ok) throw new Error("Download failed");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${song.title} - ${song.artist}.mp3`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    toast("Downloaded: " + song.title + " ✓");
+  } catch (err) {
+    console.error("Download error:", err);
+    toast("Download failed — try again");
+  }
 });
 
 el.btnDim.addEventListener("click", () => {
