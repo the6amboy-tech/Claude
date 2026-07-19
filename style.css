@@ -1,6 +1,6 @@
-/* ============ Asharas — Apple-inspired frosted glass theme ============ */
+/* ============ Asharas — premium Apple glass, 3D motion ============ */
 :root {
-  --bg: #0a0a0f;
+  --bg: #07070d;
   --text: rgba(255, 255, 255, 0.95);
   --text-dim: rgba(255, 255, 255, 0.55);
   --accent: #0a84ff;
@@ -14,6 +14,8 @@
   --player-h: 104px;
   --font: "Inter", -apple-system, "SF Pro Display", "SF Pro Text",
           BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-serif: "Instrument Serif", "New York", Georgia, serif;
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -30,22 +32,23 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ---- Ambient background orbs ---- */
+::selection { background: rgba(10, 132, 255, 0.4); }
+
+/* ---- Ambient aurora background ---- */
 .bg-orb {
   position: fixed;
   border-radius: 50%;
-  filter: blur(120px);
-  opacity: 0.45;
+  opacity: 0.5;
   z-index: -1;
   animation: drift 26s ease-in-out infinite alternate;
 }
-.orb-1 { width: 48vw; height: 48vw; top: -14vw; left: -12vw; background: #1e3a8a; }
-.orb-2 { width: 40vw; height: 40vw; bottom: -12vw; right: -10vw; background: #5b21b6; animation-delay: -9s; }
-.orb-3 { width: 28vw; height: 28vw; top: 38%; left: 58%; background: #0e7490; animation-delay: -17s; }
+.orb-1 { width: 50vw; height: 50vw; top: -15vw; left: -12vw; background: #1e3a8a; }
+.orb-2 { width: 42vw; height: 42vw; bottom: -13vw; right: -10vw; background: #5b21b6; animation-delay: -9s; }
+.orb-3 { width: 30vw; height: 30vw; top: 36%; left: 56%; background: #0e7490; animation-delay: -17s; }
 
 @keyframes drift {
-  from { transform: translate(0, 0) scale(1); }
-  to   { transform: translate(6vw, -4vw) scale(1.12); }
+  from { transform: translate(0, 0) scale(1) rotate(0deg); filter: blur(120px) hue-rotate(0deg); }
+  to   { transform: translate(6vw, -4vw) scale(1.18) rotate(20deg); filter: blur(120px) hue-rotate(45deg); }
 }
 
 /* ---- Apple frosted glass utility ---- */
@@ -57,36 +60,60 @@ body {
   box-shadow: var(--shadow);
 }
 
+/* ---- Entrance choreography ---- */
+@keyframes intro {
+  from { opacity: 0; transform: translateY(22px); filter: blur(10px); }
+  to   { opacity: 1; transform: translateY(0);    filter: blur(0); }
+}
+.app-header { animation: intro 0.9s var(--ease-spring) 0.05s backwards; }
+.search-box { animation: intro 0.9s var(--ease-spring) 0.2s backwards; }
+.status     { animation: intro 0.9s var(--ease-spring) 0.35s backwards; }
+
 /* ---- Layout ---- */
 .app {
   max-width: 880px;
   margin: 0 auto;
-  padding: 36px 22px calc(var(--player-h) + 56px);
+  padding: 40px 22px calc(var(--player-h) + 60px);
 }
 
 /* ---- Brand (top left, Apple-style typography) ---- */
 .app-header {
   display: flex;
   justify-content: flex-start;
-  margin-bottom: 30px;
+  margin-bottom: 32px;
 }
 .brand { text-align: left; }
 .brand-name {
-  font-size: 2.3rem;
-  font-weight: 700;
-  letter-spacing: -0.045em;
+  font-size: clamp(2.1rem, 5vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
   line-height: 1.05;
-  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.72) 100%);
+  background: linear-gradient(110deg,
+    #ffffff 25%, #a8c6ff 42%, #e3d3ff 50%, #ffffff 65%);
+  background-size: 220% auto;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  animation: shimmer 7s linear infinite;
 }
+@keyframes shimmer { to { background-position: -220% center; } }
+
 .tagline {
-  margin-top: 4px;
+  margin-top: 6px;
   color: var(--text-dim);
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 400;
   letter-spacing: -0.01em;
+}
+.tagline em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.22em;
+  letter-spacing: 0;
+  background: linear-gradient(100deg, #8fb8ff, #c9a8ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 /* ---- Search ---- */
@@ -96,12 +123,14 @@ body {
   gap: 10px;
   padding: 8px 8px 8px 18px;
   border-radius: 999px;
-  transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+  transition: border-color 0.3s, box-shadow 0.3s, background 0.3s, transform 0.3s;
 }
 .search-box:focus-within {
   background: rgba(255, 255, 255, 0.14);
   border-color: rgba(255, 255, 255, 0.38);
-  box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.22), var(--shadow);
+  box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.22),
+              0 0 44px rgba(10, 132, 255, 0.25), var(--shadow);
+  transform: translateY(-2px);
 }
 .search-icon { width: 20px; height: 20px; color: var(--text-dim); flex-shrink: 0; }
 #search-input {
@@ -129,13 +158,18 @@ body {
   -webkit-backdrop-filter: var(--glass-blur);
   box-shadow: 0 6px 18px rgba(10, 132, 255, 0.35),
               inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  transition: transform 0.2s, filter 0.2s;
+  transition: transform 0.25s var(--ease-spring), filter 0.2s, box-shadow 0.25s;
 }
-.search-btn:hover { filter: brightness(1.12); transform: translateY(-1px); }
-.search-btn:active { transform: scale(0.96); }
+.search-btn:hover {
+  filter: brightness(1.12);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(10, 132, 255, 0.45),
+              inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.search-btn:active { transform: scale(0.95); }
 
 /* ---- Status / suggestions ---- */
-.status { text-align: center; color: var(--text-dim); margin: 26px 0; min-height: 24px; }
+.status { text-align: center; color: var(--text-dim); margin: 28px 0; min-height: 24px; }
 .status .error { color: #ff6961; }
 .chip {
   border: var(--glass-border);
@@ -145,13 +179,18 @@ body {
   color: var(--text);
   font: inherit;
   font-size: 0.9rem;
-  padding: 6px 15px;
-  margin: 4px 2px;
+  padding: 7px 16px;
+  margin: 4px 3px;
   border-radius: 999px;
   cursor: pointer;
-  transition: background 0.2s, transform 0.2s;
+  transition: background 0.25s, transform 0.25s var(--ease-spring), box-shadow 0.25s;
 }
-.chip:hover { background: var(--glass-hover); transform: translateY(-1px); }
+.chip:hover {
+  background: var(--glass-hover);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
+}
+.chip:active { transform: scale(0.94); }
 
 .spinner {
   width: 28px; height: 28px;
@@ -163,10 +202,17 @@ body {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ---- Results list ---- */
-.results { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+/* ---- Results list (3D tilt cards) ---- */
+.results {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  perspective: 1200px;
+}
 
 .track {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -177,21 +223,43 @@ body {
   -webkit-backdrop-filter: var(--glass-blur) saturate(1.6);
   border: var(--glass-border);
   cursor: pointer;
-  transition: background 0.25s, transform 0.25s, border-color 0.25s;
-  animation: rise 0.45s ease backwards;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  transform: perspective(900px)
+             rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))
+             translateY(var(--lift, 0));
+  transition: background 0.3s, border-color 0.3s,
+              transform 0.18s ease-out, box-shadow 0.3s;
+  animation: card-in 0.6s var(--ease-spring) backwards;
 }
-.track:hover { background: var(--glass-hover); transform: translateY(-2px); }
+@keyframes card-in {
+  from { opacity: 0; transform: perspective(900px) rotateX(14deg) translateY(34px); filter: blur(6px); }
+  to   { opacity: 1; transform: perspective(900px) rotateX(0) translateY(0); filter: blur(0); }
+}
+.track:hover {
+  --lift: -4px;
+  background: var(--glass-hover);
+  box-shadow: 0 26px 50px rgba(0, 0, 0, 0.5);
+}
 .track.active {
   border-color: rgba(10, 132, 255, 0.6);
   background: linear-gradient(90deg, rgba(10, 132, 255, 0.2), rgba(255, 255, 255, 0.08));
 }
 
-@keyframes rise {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* Light sheen sweeping across a card on hover */
+.track::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%,
+              rgba(255, 255, 255, 0.14) 50%, transparent 65%);
+  transform: translateX(-130%);
+  transition: transform 0.7s ease;
+  pointer-events: none;
 }
+.track:hover::after { transform: translateX(130%); }
 
-/* Album art in search results — clear and prominent */
+/* Album art pops toward the viewer in 3D */
 .track-cover {
   width: 64px; height: 64px;
   border-radius: 14px;
@@ -199,9 +267,13 @@ body {
   flex-shrink: 0;
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
-  transition: transform 0.25s;
+  transform: translateZ(0);
+  transition: transform 0.3s var(--ease-spring), box-shadow 0.3s;
 }
-.track:hover .track-cover { transform: scale(1.05); }
+.track:hover .track-cover {
+  transform: translateZ(30px) scale(1.05);
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.55);
+}
 
 .track-info { flex: 1; min-width: 0; }
 .track-name {
@@ -243,8 +315,8 @@ body {
 .player {
   position: fixed;
   left: 50%;
-  bottom: 14px;
-  transform: translate(-50%, 140%);
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 150%) perspective(900px) rotateX(18deg);
   width: min(980px, calc(100% - 24px));
   min-height: var(--player-h);
   display: grid;
@@ -254,13 +326,13 @@ body {
   padding: 16px 24px;
   border-radius: 26px;
   z-index: 50;
-  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.7s var(--ease-spring);
 }
-.player.visible { transform: translate(-50%, 0); }
+.player.visible { transform: translate(-50%, 0) perspective(900px) rotateX(0); }
 
 .player-track { display: flex; align-items: center; gap: 16px; min-width: 0; }
 
-/* Prominent artwork on the player panel */
+/* Prominent artwork — tilts in 3D under the cursor */
 .cover-wrap {
   position: relative;
   width: 74px; height: 74px;
@@ -269,7 +341,10 @@ body {
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow: 0 12px 26px rgba(0, 0, 0, 0.55);
-  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s;
+  transform: perspective(600px)
+             rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))
+             scale(var(--s, 1));
+  transition: transform 0.2s ease-out, box-shadow 0.4s;
 }
 #player-cover {
   width: 100%; height: 100%;
@@ -284,8 +359,8 @@ body {
   pointer-events: none;
 }
 .player.playing .cover-wrap {
-  transform: scale(1.04) translateY(-2px);
-  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.6), 0 0 30px rgba(10, 132, 255, 0.28);
+  --s: 1.05;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.6), 0 0 34px rgba(10, 132, 255, 0.3);
 }
 
 .track-meta { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
@@ -308,11 +383,11 @@ body {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  /* depth: drop shadow below + light catching the top edge */
+  overflow: hidden;
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45),
               inset 0 1px 0 rgba(255, 255, 255, 0.35),
               inset 0 -6px 12px rgba(0, 0, 0, 0.2);
-  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+  transition: transform 0.3s var(--ease-spring),
               box-shadow 0.3s, background 0.3s;
 }
 .ctrl-btn:hover {
@@ -322,7 +397,7 @@ body {
               inset 0 1px 0 rgba(255, 255, 255, 0.4),
               inset 0 -6px 12px rgba(0, 0, 0, 0.18);
 }
-.ctrl-btn:active { transform: translateY(-2px) scale(0.94); }
+.ctrl-btn:active { transform: translateY(-2px) scale(0.92); }
 
 /* Icons gently bob above the glass, each on its own rhythm */
 .btn-float {
@@ -424,24 +499,58 @@ input[type="range"]::-moz-range-thumb {
 
 /* ---- Reduced motion ---- */
 @media (prefers-reduced-motion: reduce) {
-  .btn-float, .bg-orb, .track-eq span { animation: none; }
+  .btn-float, .bg-orb, .track-eq span, .brand-name { animation: none; }
+  .app-header, .search-box, .status, .track { animation: none; }
+  .track, .cover-wrap { transform: none !important; }
 }
 
-/* ---- Responsive ---- */
+/* ---- Premium mobile experience ---- */
 @media (max-width: 720px) {
+  .app { padding: 30px 16px 250px; }
+
+  /* Distinct mobile typography: bigger, airier, serif-accented */
+  .brand-name {
+    font-size: clamp(2.4rem, 11vw, 3rem);
+    letter-spacing: -0.055em;
+  }
+  .tagline { font-size: 1.08rem; margin-top: 8px; }
+  .tagline em { font-size: 1.3em; }
+  .track-name { font-size: 1.02rem; letter-spacing: -0.02em; }
+  .track-by { font-size: 0.84rem; font-weight: 300; letter-spacing: 0; }
+  .time { font-size: 0.72rem; }
+
+  .search-box { padding: 6px 6px 6px 16px; }
+  .search-btn { padding: 11px 18px; font-size: 0.92rem; }
+
+  .track { padding: 11px 13px; gap: 13px; border-radius: 18px; }
+  .track-cover { width: 58px; height: 58px; border-radius: 13px; }
+  .track-duration { display: none; }
+
+  /* Docked glass sheet player with larger touch targets */
   .player {
     grid-template-columns: 1fr;
-    gap: 10px;
-    padding: 14px 16px;
+    gap: 12px;
+    padding: 18px 18px calc(16px + env(safe-area-inset-bottom, 0px) * 0.4);
+    border-radius: 30px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    backdrop-filter: blur(30px) saturate(1.8);
+    -webkit-backdrop-filter: blur(30px) saturate(1.8);
   }
   .player-right { display: none; }
-  .app { padding-top: 26px; padding-bottom: 230px; }
-  .brand-name { font-size: 1.9rem; }
-  .track-duration { display: none; }
-  .cover-wrap { width: 60px; height: 60px; border-radius: 14px; }
+
+  .cover-wrap { width: 64px; height: 64px; border-radius: 15px; }
+  .track-title { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.02em; }
+  .track-artist { font-size: 0.86rem; font-weight: 300; }
+
+  .controls { gap: 26px; }
+  .ctrl-btn { width: 50px; height: 50px; }
+  .ctrl-btn svg { width: 22px; height: 22px; }
+  .play-btn { width: 66px; height: 66px; }
+  .play-btn svg { width: 28px; height: 28px; margin: -14px 0 0 -14px; }
 }
 
-@media (max-width: 460px) {
-  .search-btn { padding: 10px 16px; font-size: 0.9rem; }
-  .track-cover { width: 54px; height: 54px; }
+@media (max-width: 400px) {
+  .brand-name { font-size: 2.3rem; }
+  .track-cover { width: 52px; height: 52px; }
+  .controls { gap: 20px; }
 }

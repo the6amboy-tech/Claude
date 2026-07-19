@@ -303,3 +303,42 @@ document.addEventListener("keydown", (e) => {
 el.audio.volume = Number(el.volume.value);
 paintRange(el.volume);
 paintRange(el.seek);
+
+/* ---------- 3D tilt (desktop pointers only) ---------- */
+
+const canTilt =
+  matchMedia("(hover: hover) and (pointer: fine)").matches &&
+  !matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Tilts an element toward the cursor by driving the --rx/--ry CSS vars
+// its transform reads from. maxDeg caps the rotation at the edges.
+function attachTilt(container, selector, maxDeg) {
+  let raf = 0;
+  container.addEventListener("pointermove", (e) => {
+    const target = selector ? e.target.closest(selector) : container;
+    if (!target || raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = 0;
+      const r = target.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width - 0.5;
+      const py = (e.clientY - r.top) / r.height - 0.5;
+      target.style.setProperty("--ry", `${(px * maxDeg).toFixed(2)}deg`);
+      target.style.setProperty("--rx", `${(-py * maxDeg).toFixed(2)}deg`);
+    });
+  });
+  container.addEventListener(
+    "pointerout",
+    (e) => {
+      const target = selector ? e.target.closest(selector) : container;
+      if (!target) return;
+      target.style.setProperty("--rx", "0deg");
+      target.style.setProperty("--ry", "0deg");
+    },
+    true
+  );
+}
+
+if (canTilt) {
+  attachTilt(el.results, ".track", 5);
+  attachTilt(document.querySelector(".cover-wrap"), null, 14);
+}
