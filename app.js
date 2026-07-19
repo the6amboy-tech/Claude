@@ -405,8 +405,8 @@ function normalizeSong(song) {
   };
 }
 
-async function searchSongs(query) {
-  const url = `${API_BASE}/api/search/songs?query=${encodeURIComponent(query)}&limit=30`;
+async function searchSongs(query, limit = 25) {
+  const url = `${API_BASE}/api/search/songs?query=${encodeURIComponent(query)}&limit=${limit}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`API responded with ${res.status}`);
   const json = await res.json();
@@ -855,12 +855,17 @@ function onEnded() {
 
 /* ---------- Search & moods ---------- */
 
-async function runSearch(query, title) {
+// If the primary query returns nothing (e.g. a language-scoped query the
+// API has no matches for), automatically retry with fallbackQuery.
+async function runSearch(query, title, fallbackQuery) {
   showView("list");
   el.listTitle.textContent = title;
   el.results.innerHTML = '<div class="spinner"></div>';
   try {
-    const songs = await searchSongs(query);
+    let songs = await searchSongs(query);
+    if (!songs.length && fallbackQuery && fallbackQuery !== query) {
+      songs = await searchSongs(fallbackQuery);
+    }
     lastQuery = query;
     if (!songs.length) {
       el.results.innerHTML = "";
@@ -877,18 +882,28 @@ async function runSearch(query, title) {
   }
 }
 
-// Trending — seed with curated famous hits, then top up with a
-// language-aware trending search so the rail is full and recognizable.
+// Trending — seed with a few curated famous hits, then top up with a
+// language-aware trending search. Famous picks are cached for 6 hours so
+// page loads don't hammer the API (which rate-limits and empties the UI).
 async function loadTrending() {
   try {
-    const picks = await Promise.allSettled(FAMOUS_HITS.map((q) => searchSongs(q)));
-    const seen = new Set();
-    const songs = [];
-    for (const p of picks) {
-      const first = p.status === "fulfilled" ? p.value[0] : null;
-      if (first && !seen.has(first.id)) { seen.add(first.id); songs.push(first); }
+    let famous = [];
+    const cache = loadJSON("ash_trend_cache", null);
+    if (cache && Date.now() - cache.ts < 6 * 3600 * 1000 && cache.songs?.length) {
+      famous = cache.songs;
+    } else {
+      const picks = await Promise.allSettled(
+        FAMOUS_HITS.slice(0, 8).map((q) => searchSongs(q, 2))
+      );
+      for (const p of picks) {
+        const first = p.status === "fulfilled" ? p.value[0] : null;
+        if (first && !famous.some((s) => s.id === first.id)) famous.push(first);
+      }
+      if (famous.length) saveJSON("ash_trend_cache", { ts: Date.now(), songs: famous });
     }
-    const extra = await searchSongs(`${langPrefix()}trending latest hit songs 2026`);
+    const seen = new Set(famous.map((s) => s.id));
+    const songs = [...famous];
+    const extra = await searchSongs(`${langPrefix()}trending latest hit songs 2026`, 20);
     for (const s of extra) if (!seen.has(s.id)) { seen.add(s.id); songs.push(s); }
     renderTrending(songs);
   } catch {
@@ -909,7 +924,7 @@ const LANG_SECTIONS = [
 
 async function loadLangSection(key, rowEl, label) {
   try {
-    const songs = await searchSongs(`${key} latest hit songs 2026`);
+    const songs = await searchSongs(`${key} latest hit songs 2026`, 12);
     renderLangRow(rowEl, songs, key);
   } catch {
     rowEl.innerHTML = `<p class="empty-note">${label} hits unavailable right now.</p>`;
@@ -917,8 +932,10 @@ async function loadLangSection(key, rowEl, label) {
 }
 
 async function loadAllLangSections() {
+  // Sequential on purpose: firing all seven at once (on top of trending)
+  // trips the API's rate limiting and every row comes back empty.
   for (const sec of LANG_SECTIONS) {
-    loadLangSection(sec.key, el[sec.rowEl], sec.label);
+    await loadLangSection(sec.key, el[sec.rowEl], sec.label);
   }
 }
 
@@ -1007,12 +1024,14 @@ el.backHome.addEventListener("click", () => showView("home"));
 el.backHome2.addEventListener("click", () => showView("home"));
 el.backHome3.addEventListener("click", () => showView("home"));
 
-// Search matrix — mode shapes the query and respects the active language.
+// Search matrix — mode shapes the query. Song/Artist search exactly what was
+// typed (a forced language prefix often returns nothing); the Language pill
+// explicitly scopes the query to the selected language.
 function buildSearchQuery(raw, mode) {
   const lang = el.langSelect.value;
-  if (mode === "language") return `${lang || raw} ${raw}`.trim();
+  if (mode === "language") return `${lang} ${raw}`.trim();
   if (mode === "artist") return `${raw} songs`;
-  return lang ? `${lang} ${raw}` : raw;
+  return raw;
 }
 
 el.form.addEventListener("submit", (e) => {
@@ -1048,7 +1067,7 @@ async function updateReco() {
   if (raw.length < 2) return hideReco();
   const seq = ++recoSeq;
   try {
-    const songs = await searchSongs(buildSearchQuery(raw, searchMode));
+    const songs = await searchSongs(buildSearchQuery(raw, searchMode), 8);
     if (seq !== recoSeq) return;
     if (!songs.length) return hideReco();
     el.reco.innerHTML = "";
@@ -1094,7 +1113,11 @@ el.moodGrid.addEventListener("click", (e) => {
     .trim();
   activeMoodQuery = card.dataset.q;
   activeMoodLabel = label;
-  runSearch(`${langPrefix()}${card.dataset.q}`, `${label} · ${el.langSelect.value || "All languages"}`);
+  runSearch(
+    `${langPrefix()}${card.dataset.q}`,
+    `${label} · ${el.langSelect.value || "All languages"}`,
+    card.dataset.q // fall back to the unscoped genre query, never an empty list
+  );
 });
 
 // Language — re-filter active mood if one is selected + reload home sections
@@ -1103,7 +1126,11 @@ el.langSelect.addEventListener("change", () => {
   loadTrending();
   loadAllLangSections();
   if (activeMoodQuery) {
-    runSearch(`${langPrefix()}${activeMoodQuery}`, `${activeMoodLabel} · ${el.langSelect.value || "All languages"}`);
+    runSearch(
+      `${langPrefix()}${activeMoodQuery}`,
+      `${activeMoodLabel} · ${el.langSelect.value || "All languages"}`,
+      activeMoodQuery
+    );
   }
 });
 
