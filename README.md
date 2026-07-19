@@ -21,11 +21,21 @@ and a 3D motion system, powered by a custom
 - **Full player bar**: play/pause, next/previous, shuffle, repeat
   (off/all/one), favorite, download, dim mode, seek, volume, media-session
   (lock-screen keys), and keyboard shortcuts (Space, N, P, ←/→)
+- **Multi-layer search** — Song / Artist / Language filter pills and a live
+  "recommended searches" dropdown that updates as you type; the top-right
+  language selector subsets moods, trending and search across the app
+- **Queue management** — add-to-queue on every track (rows, trending,
+  language rows, recently played) plus a dedicated Queue view
 - **Favorites & playlists** stored in localStorage, with add-to-playlist from
   any song row
-- **Trending Now** rail with See-all, a **Did you know?** fun-fact card, and
-  **Listen Together** share links (`?q=…&song=…`) that auto-load the same
-  song for a friend
+- **Recently Played** rail and a famous-hits **Trending Now** (curated global
+  + Indian classics), language home rows, and a **Did you know?** fun-fact card
+- **6 premium themes** (Aurora, Royal Sapphire, Dark Horizon, Velvet Moss,
+  Crimson Eclipse, Neon Wave, Classic Slate) with distinct sidebar / panel /
+  player hues, switchable live from the toolbar
+- **Real Listen Together** — the host generates a 6-character code, friends
+  join by code or invite link (`?session=CODE`), and playback stays synced
+  across devices over MQTT; the host can transfer the crown to any listener
 - **Premium Apple glass UI** — `backdrop-filter: blur(25px)` panels, aurora
   orbs, 3D tilt cards, floating control buttons, sheen sweeps, shimmering
   wordmark, serif-accented typography (Space Grotesk + Inter + Instrument

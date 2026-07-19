@@ -38,6 +38,12 @@ const el = {
   seeAll: $("see-all"),
   moodGrid: $("mood-grid"),
   langSelect: $("lang-select"),
+  themeSelect: $("theme-select"),
+  searchWrap: document.querySelector(".search-wrap"),
+  reco: $("reco"),
+  filterPills: [...document.querySelectorAll(".filter-pill")],
+  recentsSection: $("recents-section"),
+  recentsRow: $("recents-row"),
   factText: $("fact-text"),
   factRefresh: $("fact-refresh"),
   listenTogether: $("listen-together"),
@@ -112,6 +118,16 @@ const saveJSON = (key, val) => localStorage.setItem(key, JSON.stringify(val));
 
 let favs = loadJSON("ash_favs", []);
 let playlists = loadJSON("ash_playlists", []);
+let recents = loadJSON("ash_recents", []);
+
+let searchMode = "song"; // song | artist | language
+
+// Curated, widely-recognizable hits used to seed Trending Now.
+const FAMOUS_HITS = [
+  "Kesariya", "Tum Hi Ho", "Apna Bana Le", "Chaleya", "Naatu Naatu",
+  "Butta Bomma", "Samajavaragamana", "Blinding Lights", "Shape of You",
+  "Believer", "Perfect Ed Sheeran", "Starboy", "Despacito", "Faded Alan Walker",
+];
 
 let queue = [];        // songs the player advances through
 let playNextQueue = []; // songs queued to play after current track
@@ -132,9 +148,18 @@ let isHost = false;
 let activeMoodQuery = null;
 let activeMoodLabel = null;
 
-// Simulated participants for Listen Together
-let sessionParticipants = [];
-const FAKE_NAMES = ["Alex", "Jordan", "Sam", "Riley", "Morgan", "Taylor", "Casey", "Quinn"];
+// Real cross-device participants, keyed by client id -> display name.
+let sessionParticipants = new Map();
+const DISPLAY_NAMES = ["Alex", "Jordan", "Sam", "Riley", "Morgan", "Taylor", "Casey", "Quinn", "Nova", "Kai", "Rey", "Zoe"];
+const myClientId = "u" + Math.random().toString(36).slice(2, 8);
+const myName = DISPLAY_NAMES[Math.floor(Math.random() * DISPLAY_NAMES.length)];
+const LT_BROKER = "wss://broker.emqx.io:8084/mqtt";
+const ltTopic = (code) => `asharas/session/${code}`;
+let ltClient = null;
+let ltHeartbeat = 0, ltPruneTimer = 0;
+let ltApplying = false; // guard so mirrored actions aren't re-broadcast
+const ltLastSeen = new Map(); // client id -> last heartbeat time
+const ltAvailable = () => typeof window.mqtt !== "undefined" && !window.__noMqtt;
 
 function generateSessionCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -143,112 +168,170 @@ function generateSessionCode() {
   return code;
 }
 
-function simulateParticipantJoin() {
-  if (!sessionCode) return;
-  const name = FAKE_NAMES[Math.floor(Math.random() * FAKE_NAMES.length)];
-  if (sessionParticipants.includes(name)) return;
-  sessionParticipants.push(name);
-  updateParticipantsUI();
-  toast(`${name} joined the session 🎧`);
-}
-
-function removeParticipant(name) {
-  sessionParticipants = sessionParticipants.filter((p) => p !== name);
-  updateParticipantsUI();
+function updateSessionBarCount() {
+  if (!el.ltBarCode) return;
+  const n = sessionParticipants.size + 1; // include self
+  el.ltBarCode.textContent = `${sessionCode}  ·  🎧 ${n}`;
 }
 
 function updateParticipantsUI() {
   if (!el.ltParticipantsList || !el.ltEmptyMsg) return;
+  updateSessionBarCount();
   el.ltParticipantsList.innerHTML = "";
-  if (sessionParticipants.length === 0) {
+  if (sessionParticipants.size === 0) {
     el.ltEmptyMsg.style.display = "block";
     return;
   }
   el.ltEmptyMsg.style.display = "none";
-  sessionParticipants.forEach((name) => {
+  sessionParticipants.forEach((name, id) => {
     const row = document.createElement("div");
     row.className = "lt-participant glass";
     row.innerHTML = `
       <span class="lt-participant-avatar">${name[0]}</span>
       <span class="lt-participant-name">${name}</span>
-      <button class="pill-btn glass lt-transfer-btn" data-who="${name}">Transfer</button>
-      <button class="pill-btn ghost lt-kick-btn" data-who="${name}" title="Remove">✕</button>
+      ${isHost ? `<button class="pill-btn glass lt-transfer-btn" data-who="${id}">Transfer</button>` : ""}
     `;
     el.ltParticipantsList.appendChild(row);
   });
-  // Wire transfer buttons
   el.ltParticipantsList.querySelectorAll(".lt-transfer-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-      toast(`Host transferred to ${btn.dataset.who} 👑`);
-      sessionParticipants = sessionParticipants.filter((p) => p !== btn.dataset.who);
+      const id = btn.dataset.who;
+      ltPublish({ t: "host", to: id });
+      isHost = false;
+      toast(`Host transferred to ${sessionParticipants.get(id) || "listener"} 👑`);
       updateParticipantsUI();
       el.ltTransferDialog.close();
     });
   });
-  // Wire kick buttons
-  el.ltParticipantsList.querySelectorAll(".lt-kick-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      removeParticipant(btn.dataset.who);
-      toast(`${btn.dataset.who} removed from session`);
-    });
-  });
 }
 
-function startSession(host) {
+// host: startSession(true); guest: startSession(false, "ABC123")
+function startSession(host, code) {
+  if (!ltAvailable()) { toast("Realtime sync needs an internet connection."); return false; }
   isHost = host;
-  sessionCode = generateSessionCode();
-  sessionParticipants = [];
+  sessionCode = host ? generateSessionCode() : code;
+  sessionParticipants = new Map();
   el.ltSessionCode.textContent = sessionCode;
   el.ltBarCode.textContent = sessionCode;
   el.ltSessionBar.hidden = false;
   el.listenTogether.hidden = true;
   updateParticipantsUI();
-  openSessionChannel();
-  // Simulate a participant joining after a few seconds
-  setTimeout(() => simulateParticipantJoin(), 2500);
-  setTimeout(() => simulateParticipantJoin(), 5000);
+  ltConnect();
+  return true;
 }
 
 function endSession() {
+  ltPublish({ t: "bye" });
+  clearInterval(ltHeartbeat); clearInterval(ltPruneTimer);
+  try { ltClient?.end(true); } catch {}
+  ltClient = null;
   sessionCode = null;
   isHost = false;
-  sessionParticipants = [];
+  sessionParticipants = new Map();
   el.ltSessionBar.hidden = true;
   el.listenTogether.hidden = false;
-  if (ltChannel) { ltChannel.close(); ltChannel = null; }
   toast("Session ended");
 }
 
-/* ---------- Listen Together sync (BroadcastChannel) ---------- */
+/* ---------- Listen Together sync (real, over MQTT) ---------- */
 
-let ltChannel = null;
-
-function openSessionChannel() {
-  if (ltChannel) ltChannel.close();
-  if (!sessionCode) return;
-  ltChannel = new BroadcastChannel(`asharas-session-${sessionCode}`);
-  ltChannel.onmessage = (e) => {
-    if (isHost) return; // host ignores incoming
-    const msg = e.data;
-    if (msg.type === "songChange") {
-      const idx = queue.findIndex((s) => s.id === msg.songId);
-      if (idx !== -1) {
-        queue = queue;
-        playIndex(idx);
-        if (typeof msg.currentTime === "number") el.audio.currentTime = msg.currentTime;
-      }
-    } else if (msg.type === "play") {
-      el.audio.play().catch(() => {});
-    } else if (msg.type === "pause") {
-      el.audio.pause();
-    } else if (msg.type === "seek" && typeof msg.time === "number") {
-      el.audio.currentTime = msg.time;
-    }
-  };
+function ltConnect() {
+  const client = window.mqtt.connect(LT_BROKER, {
+    clientId: "asharas_" + myClientId, keepalive: 30, reconnectPeriod: 3000, connectTimeout: 8000,
+  });
+  ltClient = client;
+  client.on("connect", () => {
+    client.subscribe(ltTopic(sessionCode));
+    ltPublish({ t: "hello" });
+    if (isHost) ltBroadcastState();
+    toast(isHost ? `Hosting · ${sessionCode}` : `Joined · ${sessionCode} 🎧`);
+  });
+  client.on("message", (_topic, payload) => {
+    let msg; try { msg = JSON.parse(payload.toString()); } catch { return; }
+    if (msg.from === myClientId) return;
+    ltHandle(msg);
+  });
+  ltHeartbeat = setInterval(() => ltPublish({ t: "ping" }), 5000);
+  ltPruneTimer = setInterval(ltPrune, 6000);
 }
 
+function ltPublish(obj) {
+  if (!ltClient || !sessionCode) return;
+  obj.from = myClientId;
+  obj.name = myName;
+  try { ltClient.publish(ltTopic(sessionCode), JSON.stringify(obj)); } catch {}
+}
+
+// Host broadcasts a control event; the current song object rides along on
+// songChange so guests can play it even without a shared library.
 function broadcastHostEvent(msg) {
-  if (isHost && ltChannel) ltChannel.postMessage(msg);
+  if (!isHost || !sessionCode || ltApplying) return;
+  if (msg.type === "songChange") msg.song = queue[currentIndex] || null;
+  ltPublish({ t: "ctl", msg });
+}
+
+function ltBroadcastState() {
+  const song = queue[currentIndex];
+  if (!song) return;
+  broadcastHostEvent({ type: "songChange", songId: song.id, currentTime: el.audio.currentTime });
+  broadcastHostEvent({ type: el.audio.paused ? "pause" : "play" });
+}
+
+function ltHandle(msg) {
+  if (msg.from) {
+    const known = sessionParticipants.has(msg.from);
+    sessionParticipants.set(msg.from, msg.name || "Listener");
+    ltLastSeen.set(msg.from, Date.now());
+    if (!known && msg.t === "hello") {
+      toast(`${msg.name || "A listener"} joined 🎧`);
+      if (isHost) ltBroadcastState(); // catch the newcomer up
+    }
+    updateParticipantsUI();
+  }
+  if (msg.t === "bye") { sessionParticipants.delete(msg.from); updateParticipantsUI(); return; }
+  if (msg.t === "host") {
+    isHost = msg.to === myClientId;
+    if (isHost) { toast("You are now the host 👑"); ltBroadcastState(); }
+    else toast("Host changed");
+    updateParticipantsUI();
+    return;
+  }
+  if (msg.t === "ctl" && !isHost) applyRemoteControl(msg.msg);
+}
+
+// Guests mirror the host's playback.
+function applyRemoteControl(m) {
+  if (!m) return;
+  ltApplying = true;
+  if (m.type === "songChange") {
+    const s = m.song;
+    if (s) {
+      const same = queue[currentIndex] && queue[currentIndex].id === s.id;
+      if (!same) { queue = [s]; currentIndex = -1; playIndex(0); }
+      if (typeof m.currentTime === "number") {
+        const seek = () => { try { el.audio.currentTime = m.currentTime; } catch {} };
+        if (el.audio.readyState >= 1) seek();
+        else el.audio.addEventListener("loadedmetadata", seek, { once: true });
+      }
+    }
+  } else if (m.type === "play") { el.audio.play().catch(() => {}); }
+  else if (m.type === "pause") { el.audio.pause(); }
+  else if (m.type === "seek" && typeof m.time === "number") { try { el.audio.currentTime = m.time; } catch {} }
+  setTimeout(() => { ltApplying = false; }, 250);
+}
+
+function ltPrune() {
+  // presence is refreshed by 5s pings; drop anyone silent for 16s
+  const now = Date.now();
+  let changed = false;
+  sessionParticipants.forEach((_n, id) => {
+    if (now - (ltLastSeen.get(id) || 0) > 16000) {
+      sessionParticipants.delete(id);
+      ltLastSeen.delete(id);
+      changed = true;
+    }
+  });
+  if (changed) updateParticipantsUI();
 }
 
 function sessionUrl() {
@@ -268,6 +351,15 @@ function copyToClipboard(text, label) {
 
 el.langSelect.value = loadJSON("ash_lang", "telugu");
 if (loadJSON("ash_dim", false)) document.documentElement.classList.add("dim");
+
+// Themes: "aurora" is the original look (no data-theme); others override.
+function applyTheme(name) {
+  if (name === "aurora") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", name);
+  if (el.themeSelect) el.themeSelect.value = name;
+  saveJSON("ash_theme", name);
+}
+applyTheme(loadJSON("ash_theme", "aurora"));
 
 /* ---------- API helpers ---------- */
 
@@ -455,43 +547,66 @@ function renderList(songs, title) {
   markActive();
 }
 
+// Shared artwork card with an "add to queue" overlay button.
+function buildTrendCard(song, getList, i) {
+  const card = document.createElement("div");
+  card.className = "trend-card glass";
+  card.style.animationDelay = `${Math.min(i * 60, 500)}ms`;
+
+  const box = document.createElement("div");
+  box.className = "trend-cover-box";
+  const q = document.createElement("button");
+  q.className = "row-btn card-queue";
+  q.title = "Add to queue";
+  q.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>';
+  q.addEventListener("click", (e) => {
+    e.stopPropagation();
+    playNextQueue.push(song);
+    toast(`Added to queue: ${song.title}`);
+    updateQueueUI();
+  });
+  box.append(coverImg(song, "trend-cover"), q);
+
+  const name = document.createElement("span");
+  name.className = "trend-name";
+  name.textContent = song.title;
+  const by = document.createElement("span");
+  by.className = "trend-by";
+  by.textContent = song.artist;
+
+  card.append(box, name, by);
+  card.addEventListener("click", () => { queue = getList(); playIndex(i); });
+  return card;
+}
+
 function renderTrending(songs) {
   trendSongs = songs;
   el.trendingRow.innerHTML = "";
-  songs.slice(0, 12).forEach((song, i) => {
-    const card = document.createElement("button");
-    card.className = "trend-card glass";
-    card.style.animationDelay = `${Math.min(i * 60, 500)}ms`;
-    const name = document.createElement("span");
-    name.className = "trend-name";
-    name.textContent = song.title;
-    const by = document.createElement("span");
-    by.className = "trend-by";
-    by.textContent = song.artist;
-    card.append(coverImg(song, "trend-cover"), name, by);
-    card.addEventListener("click", () => { queue = trendSongs; playIndex(i); });
-    el.trendingRow.appendChild(card);
-  });
+  songs.slice(0, 14).forEach((song, i) =>
+    el.trendingRow.appendChild(buildTrendCard(song, () => trendSongs, i)));
 }
 
 // Generic horizontal row renderer for language categories
 function renderLangRow(rowEl, songs, rowKey) {
   langSongsCache[rowKey] = songs;
   rowEl.innerHTML = "";
-  songs.slice(0, 12).forEach((song, i) => {
-    const card = document.createElement("button");
-    card.className = "trend-card glass";
-    card.style.animationDelay = `${Math.min(i * 60, 500)}ms`;
-    const name = document.createElement("span");
-    name.className = "trend-name";
-    name.textContent = song.title;
-    const by = document.createElement("span");
-    by.className = "trend-by";
-    by.textContent = song.artist;
-    card.append(coverImg(song, "trend-cover"), name, by);
-    card.addEventListener("click", () => { queue = langSongsCache[rowKey]; playIndex(i); });
-    rowEl.appendChild(card);
-  });
+  songs.slice(0, 12).forEach((song, i) =>
+    rowEl.appendChild(buildTrendCard(song, () => langSongsCache[rowKey], i)));
+}
+
+// Recently played — updated whenever a track starts.
+function pushRecent(song) {
+  recents = [song, ...recents.filter((s) => s.id !== song.id)].slice(0, 20);
+  saveJSON("ash_recents", recents);
+  renderRecents();
+}
+
+function renderRecents() {
+  if (!el.recentsSection) return;
+  el.recentsSection.hidden = recents.length === 0;
+  el.recentsRow.innerHTML = "";
+  recents.forEach((song, i) =>
+    el.recentsRow.appendChild(buildTrendCard(song, () => recents, i)));
 }
 
 function renderPlaylists() {
@@ -677,6 +792,7 @@ function playIndex(i) {
   markActive();
   syncFavUI();
   updateQueueUI();
+  pushRecent(song);
 
   // Broadcast song change to session participants
   broadcastHostEvent({ type: "songChange", songId: song.id, currentTime: 0 });
@@ -761,17 +877,19 @@ async function runSearch(query, title) {
   }
 }
 
-// Trending — search for latest songs (fresh every load via varied queries)
+// Trending — seed with curated famous hits, then top up with a
+// language-aware trending search so the rail is full and recognizable.
 async function loadTrending() {
-  const queries = [
-    `${langPrefix()}trending latest hit songs 2026`,
-    `${langPrefix()}top charts new songs 2026`,
-    `${langPrefix()}viral hits new music 2026`,
-    `${langPrefix()}most played songs right now`,
-  ];
-  const query = queries[Math.floor(Math.random() * queries.length)];
   try {
-    const songs = await searchSongs(query);
+    const picks = await Promise.allSettled(FAMOUS_HITS.map((q) => searchSongs(q)));
+    const seen = new Set();
+    const songs = [];
+    for (const p of picks) {
+      const first = p.status === "fulfilled" ? p.value[0] : null;
+      if (first && !seen.has(first.id)) { seen.add(first.id); songs.push(first); }
+    }
+    const extra = await searchSongs(`${langPrefix()}trending latest hit songs 2026`);
+    for (const s of extra) if (!seen.has(s.id)) { seen.add(s.id); songs.push(s); }
     renderTrending(songs);
   } catch {
     el.trendingRow.innerHTML = '<p class="empty-note">Trending is unavailable right now.</p>';
@@ -889,15 +1007,81 @@ el.backHome.addEventListener("click", () => showView("home"));
 el.backHome2.addEventListener("click", () => showView("home"));
 el.backHome3.addEventListener("click", () => showView("home"));
 
-// Search
+// Search matrix — mode shapes the query and respects the active language.
+function buildSearchQuery(raw, mode) {
+  const lang = el.langSelect.value;
+  if (mode === "language") return `${lang || raw} ${raw}`.trim();
+  if (mode === "artist") return `${raw} songs`;
+  return lang ? `${lang} ${raw}` : raw;
+}
+
 el.form.addEventListener("submit", (e) => {
   e.preventDefault();
+  hideReco();
   const query = el.input.value.trim();
   if (!query) return;
   activeMoodQuery = null;
   activeMoodLabel = null;
-  runSearch(query, `Results for "${query}"`);
+  const modeLabel = { song: "Songs", artist: "Artist", language: el.langSelect.value || "Language" }[searchMode];
+  runSearch(buildSearchQuery(query, searchMode), `${modeLabel} · "${query}"`);
 });
+
+// Filter pills
+el.filterPills.forEach((pill) =>
+  pill.addEventListener("click", () => {
+    searchMode = pill.dataset.mode;
+    el.filterPills.forEach((p) => {
+      const on = p === pill;
+      p.classList.toggle("active", on);
+      p.setAttribute("aria-checked", on ? "true" : "false");
+    });
+    if (el.input.value.trim()) updateReco();
+  })
+);
+
+// Autocomplete "recommended searches"
+let recoTimer = 0, recoSeq = 0;
+function hideReco() { el.reco.hidden = true; el.input.setAttribute("aria-expanded", "false"); }
+
+async function updateReco() {
+  const raw = el.input.value.trim();
+  if (raw.length < 2) return hideReco();
+  const seq = ++recoSeq;
+  try {
+    const songs = await searchSongs(buildSearchQuery(raw, searchMode));
+    if (seq !== recoSeq) return;
+    if (!songs.length) return hideReco();
+    el.reco.innerHTML = "";
+    const seen = new Set();
+    songs.slice(0, 8).forEach((song) => {
+      const key = searchMode === "artist" ? song.artist : song.title;
+      if (seen.has(key)) return;
+      seen.add(key);
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "reco-item";
+      item.innerHTML = `<img src="${song.cover || COVER_FALLBACK}" alt="" loading="lazy" />
+        <span class="reco-text"><span class="reco-title"></span><span class="reco-by"></span></span>`;
+      item.querySelector(".reco-title").textContent = key;
+      item.querySelector(".reco-by").textContent = searchMode === "artist" ? "Artist" : song.artist;
+      item.addEventListener("click", () => {
+        el.input.value = key;
+        hideReco();
+        el.form.requestSubmit();
+      });
+      el.reco.appendChild(item);
+    });
+    el.reco.hidden = false;
+    el.input.setAttribute("aria-expanded", "true");
+  } catch { hideReco(); }
+}
+
+el.input.addEventListener("input", () => { clearTimeout(recoTimer); recoTimer = setTimeout(updateReco, 250); });
+el.input.addEventListener("blur", () => setTimeout(hideReco, 150));
+document.addEventListener("click", (e) => { if (!el.searchWrap.contains(e.target)) hideReco(); });
+
+// Theme selector
+el.themeSelect.addEventListener("change", () => applyTheme(el.themeSelect.value));
 
 // Moods
 el.moodGrid.addEventListener("click", (e) => {
@@ -938,8 +1122,7 @@ el.listenTogether.addEventListener("click", () => el.ltDialog.showModal());
 // Choice: Host
 el.ltHost.addEventListener("click", () => {
   el.ltDialog.close();
-  startSession(true);
-  el.ltHostDialog.showModal();
+  if (startSession(true)) el.ltHostDialog.showModal();
 });
 
 // Choice: Join
@@ -980,10 +1163,7 @@ el.ltJoinBtn.addEventListener("click", () => {
   const code = el.ltCodeInput.value.trim().toUpperCase();
   if (code.length !== 6) return toast("Enter a valid 6-character code");
   el.ltJoinDialog.close();
-  startSession(false);
-  el.ltBarCode.textContent = code;
-  sessionCode = code;
-  toast("Joined session " + code + " 🎧");
+  startSession(false, code);
 });
 
 // Join dialog — Enter key
@@ -1226,13 +1406,19 @@ if (canTilt) {
 el.audio.volume = Number(el.volume.value);
 paintRange(el.volume);
 paintRange(el.seek);
+renderRecents();
 loadFact();
 loadTrending();
 loadAllLangSections();
 
-// Shared "listen together" links: ?q=<query>&song=<id>
+// Deep links: ?session=<CODE> auto-joins a session; ?q=&song= shares a song
 (async () => {
   const params = new URLSearchParams(location.search);
+  const session = (params.get("session") || "").trim().toUpperCase();
+  if (session.length === 6) {
+    if (el.welcome) dismissWelcome();
+    startSession(false, session);
+  }
   const q = params.get("q");
   if (!q) return;
   const songs = await runSearch(q, `Shared · "${q}"`);

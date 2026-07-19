@@ -67,14 +67,22 @@
     </aside>
 
     <main class="app">
-      <form class="search-box glass" id="search-form" autocomplete="off">
-        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <circle cx="11" cy="11" r="7"></circle>
-          <line x1="21" y1="21" x2="16.5" y2="16.5"></line>
-        </svg>
-        <input id="search-input" type="text" placeholder="Search songs, artists, albums…" spellcheck="false" />
-        <button type="submit" class="search-btn">Search</button>
-      </form>
+      <div class="search-wrap">
+        <form class="search-box glass" id="search-form" autocomplete="off">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="11" cy="11" r="7"></circle>
+            <line x1="21" y1="21" x2="16.5" y2="16.5"></line>
+          </svg>
+          <input id="search-input" type="text" placeholder="Search songs, artists, albums…" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="reco" />
+          <button type="submit" class="search-btn">Search</button>
+        </form>
+        <div class="reco-dropdown glass" id="reco" hidden></div>
+        <div class="search-filters" role="radiogroup" aria-label="Search mode">
+          <button class="filter-pill active" data-mode="song" role="radio" aria-checked="true">🎵 Song</button>
+          <button class="filter-pill" data-mode="artist" role="radio" aria-checked="false">🎙️ Artist</button>
+          <button class="filter-pill" data-mode="language" role="radio" aria-checked="false">🌐 Language</button>
+        </div>
+      </div>
 
       <div class="toolbar">
         <button class="pill-btn glass" id="listen-together">
@@ -103,6 +111,18 @@
           </button>
         </div>
         <span class="spacer"></span>
+        <label class="lang-wrap glass">
+          <span class="lang-label">Theme</span>
+          <select id="theme-select">
+            <option value="aurora">Aurora</option>
+            <option value="royal-sapphire">Royal Sapphire</option>
+            <option value="dark-horizon">Dark Horizon</option>
+            <option value="velvet-moss">Velvet Moss</option>
+            <option value="crimson-eclipse">Crimson Eclipse</option>
+            <option value="neon-wave">Neon Wave</option>
+            <option value="classic-slate">Classic Slate</option>
+          </select>
+        </label>
         <label class="lang-wrap glass">
           <span class="lang-label">Language</span>
           <select id="lang-select">
@@ -137,6 +157,11 @@
           <p id="fact-text">Loading fun fact…</p>
           <button class="pill-btn ghost" id="fact-refresh">Refresh</button>
         </div>
+
+        <section id="recents-section" hidden>
+          <h2 class="section-head"><span class="head-bar"></span>🕘 Recently played</h2>
+          <div class="trend-row" id="recents-row"></div>
+        </section>
 
         <div class="row-head">
           <h2 class="section-head"><span class="head-bar"></span>🔥 Trending now</h2>
@@ -384,6 +409,7 @@
 
   <div id="toast" role="status"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js" onerror="window.__noMqtt=true"></script>
   <script src="app.js"></script>
 </body>
 </html>
