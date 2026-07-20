@@ -1693,23 +1693,149 @@ if (canTilt) {
   });
   attachTilt(document.querySelector(".cover-wrap"), null, 14);
 
-  // 3D background parallax — the whole layer leans toward the cursor;
-  // each element multiplies the shift by its own --depth for real depth.
-  const bg3d = document.querySelector(".bg3d");
-  if (bg3d) {
-    let bgRaf = 0;
-    window.addEventListener("pointermove", (e) => {
-      if (bgRaf) return;
-      bgRaf = requestAnimationFrame(() => {
-        bgRaf = 0;
-        const x = e.clientX / innerWidth - 0.5;
-        const y = e.clientY / innerHeight - 0.5;
-        bg3d.style.setProperty("--par-x", `${(x * 26).toFixed(1)}px`);
-        bg3d.style.setProperty("--par-y", `${(y * 18).toFixed(1)}px`);
+}
+
+/* ---------- Particle-field background (cursor-reactive 3D swarm) ----------
+   A few hundred tiny dashes ride a swooping bezier arc across the viewport
+   with real depth: near particles are larger, brighter and parallax more.
+   The whole field eases toward the cursor; particles slide away from it.
+   Colors follow the active theme. Transform-free canvas, DPR-capped,
+   disabled entirely under prefers-reduced-motion. */
+(() => {
+  const canvas = document.getElementById("bg-canvas");
+  if (!canvas) return;
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const ctx = canvas.getContext("2d");
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  let W = 0, H = 0, particles = [];
+  let colors = ["#4d9fff", "#5ce6c3", "#ffffff"];
+
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    colors = [
+      cs.getPropertyValue("--accent").trim() || "#4d9fff",
+      cs.getPropertyValue("--accent-2").trim() || "#5ce6c3",
+      "#ffffff",
+    ];
+  }
+  readColors();
+  new MutationObserver(readColors)
+    .observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] });
+
+  // Sweeping cubic bezier from lower-left to upper-right of the viewport
+  function bez(t) {
+    const p0x = -0.1 * W, p0y = 0.95 * H, p1x = 0.25 * W, p1y = 0.1 * H;
+    const p2x = 0.7 * W, p2y = 0.95 * H, p3x = 1.12 * W, p3y = 0.2 * H;
+    const u = 1 - t;
+    return {
+      x: u * u * u * p0x + 3 * u * u * t * p1x + 3 * u * t * t * p2x + t * t * t * p3x,
+      y: u * u * u * p0y + 3 * u * u * t * p1y + 3 * u * t * t * p2y + t * t * t * p3y,
+    };
+  }
+  function bezDir(t) {
+    const e = 0.004, a = bez(Math.max(0, t - e)), b = bez(Math.min(1, t + e));
+    const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1;
+    return { x: dx / l, y: dy / l };
+  }
+  const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
+
+  function build() {
+    W = innerWidth; H = innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    canvas.style.width = W + "px"; canvas.style.height = H + "px";
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.lineCap = "round";
+    const count = reduced ? 0 : Math.min(Math.floor((W * H) / 2400), 850);
+    particles = [];
+    for (let i = 0; i < count; i++) {
+      const onArc = Math.random() < 0.78;
+      particles.push({
+        onArc,
+        t: Math.random(),
+        off: gauss() * (0.06 + 0.2 * Math.random()) * Math.min(W, H), // spread from the arc spine
+        sx: Math.random() * W, sy: Math.random() * H,                 // scatter home
+        z: Math.random() * 2 - 1,                                     // depth: −1 near … 1 far
+        drift: 0.000018 + Math.random() * 0.00006,
+        len: 2.5 + Math.random() * 6,
+        w: 0.7 + Math.random() * 1.5,
+        ci: (Math.random() * 3) | 0,
+        ph: Math.random() * Math.PI * 2,
       });
+    }
+    window.__bgParticleCount = particles.length;
+  }
+
+  let mx = 0.5, my = 0.5, px = 0.5, py = 0.5;
+  if (matchMedia("(hover: hover) and (pointer: fine)").matches && !reduced) {
+    window.addEventListener("pointermove", (e) => {
+      mx = e.clientX / W; my = e.clientY / H;
     }, { passive: true });
   }
-}
+
+  let last = 0;
+  function frame(now) {
+    const dt = Math.min(now - last, 50) || 16;
+    last = now;
+    px += (mx - px) * 0.045; // buttery ease toward the cursor
+    py += (my - py) * 0.045;
+    ctx.clearRect(0, 0, W, H);
+    const ox = px - 0.5, oy = py - 0.5;
+    const curX = px * W, curY = py * H;
+
+    for (const p of particles) {
+      p.ph += 0.0007 * dt;
+      let x, y, dir;
+      if (p.onArc) {
+        p.t += p.drift * dt;
+        if (p.t > 1) p.t -= 1;
+        const b = bez(p.t);
+        dir = bezDir(p.t);
+        const wobble = Math.sin(p.ph) * 6;
+        x = b.x + -dir.y * (p.off + wobble);
+        y = b.y + dir.x * (p.off + wobble);
+      } else {
+        x = p.sx + Math.sin(p.ph) * 8;
+        y = p.sy + Math.cos(p.ph * 0.8) * 6;
+        dir = { x: Math.cos(p.ph * 0.3), y: Math.sin(p.ph * 0.3) };
+      }
+
+      // depth parallax: near particles (z=−1) shift up to ~2× more
+      const par = 1 - p.z;
+      x += ox * 52 * par;
+      y += oy * 34 * par;
+
+      // gentle repulsion around the cursor
+      const dx = x - curX, dy = y - curY;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < 19600 && d2 > 1) { // within 140px
+        const d = Math.sqrt(d2);
+        const push = (1 - d / 140) * 26;
+        x += (dx / d) * push;
+        y += (dy / d) * push;
+      }
+
+      const s = 0.55 + par * 0.45;
+      ctx.globalAlpha = (0.14 + 0.3 * par) * (0.75 + 0.25 * Math.sin(p.ph * 1.7));
+      ctx.strokeStyle = colors[p.ci];
+      ctx.lineWidth = p.w * s;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + dir.x * p.len * s, y + dir.y * p.len * s);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(frame);
+  }
+
+  let resizeTimer = 0;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(build, 200);
+  });
+
+  build();
+  if (!reduced && particles.length) requestAnimationFrame(frame);
+})();
 
 /* ---------- Boot ---------- */
 
