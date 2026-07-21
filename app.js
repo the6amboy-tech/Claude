@@ -687,7 +687,13 @@ function buildTrendCard(song, getList, i) {
     toast(`Added to queue: ${song.title}`);
     updateQueueUI();
   });
-  box.append(coverImg(song, "trend-cover"), q);
+  // Spotify-style floating play button
+  const play = document.createElement("button");
+  play.className = "card-play";
+  play.title = "Play";
+  play.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+  play.addEventListener("click", (e) => { e.stopPropagation(); queue = getList(); playIndex(i); });
+  box.append(coverImg(song, "trend-cover"), q, play);
 
   const name = document.createElement("span");
   name.className = "trend-name";
@@ -1021,6 +1027,30 @@ function onEnded() {
 
 /* ---------- Search & moods ---------- */
 
+// Search often returns a whole album/movie back-to-back. Drop exact
+// duplicates and cap how many tracks any single album may contribute so the
+// results feel varied — unless capping would leave too few, then relax.
+function diversifySongs(songs, perAlbum = 3, floor = 8) {
+  const seen = new Set();
+  const deduped = [];
+  for (const s of songs) {
+    const key = `${s.title}|${s.artist}`.toLowerCase().trim();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(s);
+  }
+  const count = new Map();
+  const kept = [];
+  const overflow = [];
+  for (const s of deduped) {
+    const album = (s.album || "").toLowerCase().trim();
+    const n = count.get(album) || 0;
+    if (!album || n < perAlbum) { count.set(album, n + 1); kept.push(s); }
+    else overflow.push(s);
+  }
+  return kept.length >= floor ? kept : kept.concat(overflow);
+}
+
 // If the primary query returns nothing (e.g. a language-scoped query the
 // API has no matches for), automatically retry with fallbackQuery.
 async function runSearch(query, title, fallbackQuery) {
@@ -1032,6 +1062,7 @@ async function runSearch(query, title, fallbackQuery) {
     if (!songs.length && fallbackQuery && fallbackQuery !== query) {
       songs = await searchSongs(fallbackQuery);
     }
+    songs = diversifySongs(songs);
     lastQuery = query;
     if (!songs.length) {
       el.results.innerHTML = "";
