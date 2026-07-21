@@ -951,7 +951,49 @@ function playNext() {
     return;
   }
   if (!queue.length) return;
-  playIndex(shuffleOn ? randomIndex() : (currentIndex + 1) % queue.length);
+  if (shuffleOn && queue.length > 1) return playIndex(randomIndex());
+  const nextIdx = currentIndex + 1;
+  if (nextIdx < queue.length) return playIndex(nextIdx);
+  // Reached the end of the queue.
+  if (repeatMode === "all" && queue.length > 1) return playIndex(0);
+  // Repeat off (or a single-song queue): pull in related tracks so playback
+  // continues with a *different* song instead of stopping or repeating.
+  extendQueueAndPlay();
+}
+
+// Autoplay "radio": append related songs and advance. Never re-queues the
+// song that just finished, and de-dupes against everything already in queue.
+let autoplayLoading = false;
+async function extendQueueAndPlay() {
+  if (autoplayLoading) return;
+  const cur = queue[currentIndex];
+  if (!cur) return;
+  autoplayLoading = true;
+  try {
+    const primaryArtist = (cur.artist || "").split(",")[0].trim();
+    const seeds = [
+      primaryArtist ? `${primaryArtist} songs` : "",
+      `${langPrefix()}trending hit songs`,
+      `${langPrefix()}popular songs`,
+      "top hit songs",
+    ].filter(Boolean);
+    const existing = new Set(queue.map((s) => s.id));
+    let added = [];
+    for (const q of seeds) {
+      let songs = [];
+      try { songs = await searchSongs(q, 25); } catch {}
+      added = songs.filter((s) => s.id !== cur.id && !existing.has(s.id));
+      if (added.length) break;
+    }
+    if (added.length) {
+      queue = queue.concat(added);
+      playIndex(currentIndex + 1);
+    } else {
+      toast("Reached the end — search or pick a mood to keep the music going");
+    }
+  } finally {
+    autoplayLoading = false;
+  }
 }
 
 function playPrev() {
@@ -970,10 +1012,10 @@ function togglePlay() {
 }
 
 function onEnded() {
+  // Repeat-one replays the same track by explicit user choice; otherwise a
+  // finished song always advances to a different one (playNext handles the
+  // user queue, shuffle, wrap-around and autoplay-radio).
   if (repeatMode === "one") { el.audio.currentTime = 0; el.audio.play().catch(() => {}); return; }
-  if (shuffleOn) return playIndex(randomIndex());
-  const last = currentIndex === queue.length - 1;
-  if (last && repeatMode === "off") return; // stop at end of queue
   playNext();
 }
 
@@ -1873,3 +1915,10 @@ loadAllLangSections();
   const i = songs.findIndex((s) => s.id === id);
   if (i !== -1) { queue = songs; playIndex(i); }
 })();
+
+/* ---------- PWA: register the service worker (installable app + offline) ---------- */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
