@@ -1,0 +1,105 @@
+name: Build Android App Bundle (TWA)
+
+# Wraps the deployed PWA in a Trusted Web Activity and produces a signed
+# .aab / .apk you can upload to the Google Play Console.
+#
+# Run it manually: Actions tab → "Build Android App Bundle (TWA)" → Run workflow.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   ANDROID_KEYSTORE_BASE64   base64 of your signing keystore (see notes below)
+#   ANDROID_KEYSTORE_PASSWORD keystore (store) password
+#   ANDROID_KEY_PASSWORD      key password (often the same as the store password)
+#   ANDROID_KEY_ALIAS         key alias (must match twa-manifest.json → signingKey.alias, e.g. "asharas")
+#
+# First time? Create a keystore locally, then base64 it for the secret:
+#   keytool -genkeypair -v -keystore android.keystore -alias asharas \
+#     -keyalg RSA -keysize 2048 -validity 9125
+#   base64 -w0 android.keystore   # (macOS: base64 -i android.keystore) → paste into ANDROID_KEYSTORE_BASE64
+# Keep android.keystore safe & private — you need the SAME key for every future update.
+
+on:
+  workflow_dispatch:
+    inputs:
+      versionName:
+        description: "App version name (e.g. 1.0.0)"
+        required: true
+        default: "1.0.0"
+      versionCode:
+        description: "App version code (integer, must increase each release)"
+        required: true
+        default: "1"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Bubblewrap
+        run: npm install -g @bubblewrap/cli@1.24.1
+
+      - name: Point Bubblewrap at the pre-installed JDK & SDK (no downloads/prompts)
+        run: |
+          mkdir -p ~/.bubblewrap
+          cat > ~/.bubblewrap/config.json <<EOF
+          { "jdkPath": "${JAVA_HOME}", "androidSdkPath": "${ANDROID_HOME:-$ANDROID_SDK_ROOT}" }
+          EOF
+          cat ~/.bubblewrap/config.json
+
+      - name: Decode signing keystore
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KS" ]; then echo "::error::ANDROID_KEYSTORE_BASE64 secret is not set"; exit 1; fi
+          echo "$KS" | base64 -d > android.keystore
+          echo "Keystore restored ($(stat -c%s android.keystore) bytes)"
+
+      - name: Prepare TWA project from twa-manifest.json
+        run: |
+          # Stamp in the requested version, then let Bubblewrap generate the
+          # Android/Gradle project from our committed twa-manifest.json.
+          node -e "const f='twa-manifest.json',m=require('./'+f);\
+            m.appVersionName='${{ github.event.inputs.versionName }}';\
+            m.appVersionCode=parseInt('${{ github.event.inputs.versionCode }}',10);\
+            m.signingKey={path:'./android.keystore',alias:'${{ secrets.ANDROID_KEY_ALIAS }}'};\
+            require('fs').writeFileSync(f,JSON.stringify(m,null,2));"
+          bubblewrap init --manifest="https://the6amboy-tech.github.io/Claude/manifest.webmanifest" --directory=. --skipPwaValidation <<< "$(printf 'Y\n')" || true
+          # Regenerate the native project from the (committed) twa-manifest.json
+          bubblewrap update --skipVersionUpgrade || true
+
+      - name: Build signed bundle
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: bubblewrap build --skipPwaValidation
+
+      - name: Show digital-asset-links fingerprint (host this to remove the URL bar)
+        run: |
+          echo "Add the SHA-256 below to /.well-known/assetlinks.json at your DOMAIN ROOT:"
+          keytool -list -v -keystore android.keystore -alias "${{ secrets.ANDROID_KEY_ALIAS }}" \
+            -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" 2>/dev/null | grep "SHA256:" || true
+
+      - name: Upload artifacts (.aab + .apk)
+        uses: actions/upload-artifact@v4
+        with:
+          name: asharas-android
+          if-no-files-found: warn
+          path: |
+            app-release-bundle.aab
+            app-release-signed.apk
+            assetlinks.json

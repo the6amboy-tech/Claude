@@ -15,6 +15,7 @@
   "iconUrl": "https://the6amboy-tech.github.io/Claude/icons/icon-512.png",
   "maskableIconUrl": "https://the6amboy-tech.github.io/Claude/icons/icon-maskable-512.png",
   "webManifestUrl": "https://the6amboy-tech.github.io/Claude/manifest.webmanifest",
+  "signingKey": { "path": "./android.keystore", "alias": "asharas" },
   "fallbackType": "customtabs",
   "features": {},
   "shortcuts": [],

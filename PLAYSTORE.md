@@ -70,6 +70,27 @@ right to stream the content, or point the player at royalty-free/self-owned
 audio. I flag this so it isn't a surprise during review — happy to help adapt
 the player to a licensed or royalty-free source if you want to go fully public.
 
----
-Want me to also add a GitHub Actions workflow that builds the `.aab` in CI (you'd
-add the keystore as an encrypted secret)? Say the word and I'll wire it up.
+## Build the `.aab` in CI (no local Android setup needed)
+
+A workflow at `.github/workflows/build-android.yml` builds the signed bundle for
+you on GitHub's runners. One-time setup:
+
+1. **Create a signing keystore** (once — keep it forever, private):
+   ```bash
+   keytool -genkeypair -v -keystore android.keystore -alias asharas \
+     -keyalg RSA -keysize 2048 -validity 9125
+   base64 -w0 android.keystore   # macOS: base64 -i android.keystore
+   ```
+2. **Add repo secrets** (Settings → Secrets and variables → Actions):
+   - `ANDROID_KEYSTORE_BASE64` — the base64 string from step 1
+   - `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_PASSWORD` — your passwords
+   - `ANDROID_KEY_ALIAS` — `asharas`
+3. **Run it:** Actions tab → *Build Android App Bundle (TWA)* → *Run workflow*
+   (set version name/code). When it finishes, download the **asharas-android**
+   artifact — it contains `app-release-bundle.aab` (upload this to Play Console),
+   the signed `.apk` (for sideload testing), and `assetlinks.json` (host at your
+   domain root per step 2 above). Bump the version **code** for every new release.
+
+> Note: this workflow is a solid starting point but hasn't been run against a
+> real keystore yet — the first run may need a small tweak (Bubblewrap version or
+> a prompt). Ping me with the run log and I'll fix it fast.
