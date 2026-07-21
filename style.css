@@ -1596,6 +1596,14 @@ dialog .pill-btn.ghost { width: 100%; justify-content: center; }
   --player-bg: linear-gradient(90deg, rgba(6,7,10,0.96), rgba(14,16,22,0.92));
   --orb-1: #2a3038; --orb-2: #20252e; --orb-3: #333a45;
 }
+:root[data-theme="spotify"] {
+  --bg: #000000; --accent: #1ed760; --accent-2: #1db954; --accent-soft: rgba(30,215,96,0.85);
+  --glass-bg: rgba(255,255,255,0.055);
+  --glass-hover: rgba(255,255,255,0.12);
+  --sidebar-bg: linear-gradient(180deg, #0a0a0a, #000000);
+  --player-bg: linear-gradient(90deg, #181818, #101010);
+  --orb-1: #0b3b1f; --orb-2: #07341c; --orb-3: #0a2a16;
+}
 
 /* ---- Search matrix ---- */
 .search-wrap { position: relative; }
