@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://the6amboy-tech.github.io/Claude/sitemap.xml
+Sitemap: https://www.asharas.in/sitemap.xml
