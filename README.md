@@ -4,7 +4,7 @@ A premium, responsive music player with an Apple-inspired frosted-glass theme
 and a 3D motion system, powered by a custom
 [JioSaavn API](https://jiosaavn-api-one-rho.vercel.app). No ads, no logins.
 
-**Live:** https://the6amboy-tech.github.io/Claude/
+**Live:** https://www.asharas.in
 
 ## Features
 
