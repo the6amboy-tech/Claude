@@ -167,9 +167,8 @@ const ltLastSeen = new Map(); // client id -> last heartbeat time
 const ltAvailable = () => typeof window.mqtt !== "undefined" && !window.__noMqtt;
 
 function generateSessionCode() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
-  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  for (let i = 0; i < 4; i++) code += Math.floor(Math.random() * 10);
   return code;
 }
 
@@ -1525,8 +1524,8 @@ el.ltHostClose.addEventListener("click", () => el.ltHostDialog.close());
 
 // Join dialog — Join button
 el.ltJoinBtn.addEventListener("click", () => {
-  const code = el.ltCodeInput.value.trim().toUpperCase();
-  if (code.length !== 6) return toast("Enter a valid 6-character code");
+  const code = el.ltCodeInput.value.trim();
+  if (!/^\d{4}$/.test(code)) return toast("Enter a valid 4-digit code");
   el.ltJoinDialog.close();
   startSession(false, code);
 });
@@ -1934,8 +1933,8 @@ loadAllLangSections();
 // Deep links: ?session=<CODE> auto-joins a session; ?q=&song= shares a song
 (async () => {
   const params = new URLSearchParams(location.search);
-  const session = (params.get("session") || "").trim().toUpperCase();
-  if (session.length === 6) {
+  const session = (params.get("session") || "").trim();
+  if (/^\d{4}$/.test(session)) {
     if (el.welcome) dismissWelcome();
     startSession(false, session);
   }
