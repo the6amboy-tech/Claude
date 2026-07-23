@@ -1434,10 +1434,18 @@ function addToPlaylist(pl, song) {
 
 /* ---------- Events ---------- */
 
-// Welcome screen
+// Welcome screen — always dismisses safely, even if called twice
 function dismissWelcome(then) {
+  if (!el.welcome || !el.welcome.isConnected) {
+    // already gone — just run the callback
+    then?.();
+    return;
+  }
   el.welcome.classList.add("leave");
-  setTimeout(() => { el.welcome.remove(); then?.(); }, 550);
+  setTimeout(() => {
+    if (el.welcome && el.welcome.isConnected) el.welcome.remove();
+    then?.();
+  }, 550);
 }
 
 // PWA install prompt
@@ -1451,24 +1459,47 @@ window.addEventListener("beforeinstallprompt", (e) => {
 const isStandalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone;
 if (isStandalone && el.welcome) {
   el.welcome.remove();
-} else {
-  // Download Asharas — trigger browser's native install prompt
-  el.cardDownload.addEventListener("click", async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      deferredPrompt = null;
-      dismissWelcome(outcome === "accepted" ? () => toast("Asharas installed! 🎉") : undefined);
-    } else {
-      // Fallback: browser doesn't support install prompt or already dismissed
-      dismissWelcome(() => {
-        toast("Tap ⋮ → 'Add to Home Screen' to install");
-      });
-    }
-  });
+  el.welcome = null;
+}
 
-  // Continue in browser — just enter the app
-  el.cardBrowser.addEventListener("click", () => dismissWelcome(() => el.input.focus()));
+// Always set up the button listeners, even if the element gets re‑created
+function setupWelcomeButtons() {
+  const dlBtn = el.cardDownload || document.getElementById("card-download");
+  const brBtn = el.cardBrowser || document.getElementById("card-browser");
+
+  if (dlBtn) {
+    dlBtn.addEventListener("click", async () => {
+      if (deferredPrompt) {
+        // Browser supports PWA install prompt
+        try {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          deferredPrompt = null;
+          dismissWelcome(outcome === "accepted" ? () => toast("Asharas installed! 🎉") : undefined);
+        } catch {
+          // Prompt failed — fall through to normal dismiss
+          dismissWelcome();
+        }
+      } else {
+        // Fallback: browser doesn't support prompt or it was already dismissed
+        dismissWelcome(() => {
+          toast("Tap ⋮ → 'Add to Home Screen' to install");
+        });
+      }
+    });
+  }
+
+  if (brBtn) {
+    brBtn.addEventListener("click", () => dismissWelcome(() => el.input?.focus()));
+  }
+}
+
+// If welcome is still in the DOM (not standalone), attach button handlers
+if (el.welcome && el.welcome.isConnected) {
+  setupWelcomeButtons();
+} else if (!isStandalone) {
+  // In case welcome exists but wasn't caught above
+  setupWelcomeButtons();
 }
 
 // Navigation
