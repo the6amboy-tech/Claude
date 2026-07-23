@@ -15,7 +15,10 @@
   "iconUrl": "https://www.asharas.in/icons/icon-512.png",
   "maskableIconUrl": "https://www.asharas.in/icons/icon-maskable-512.png",
   "webManifestUrl": "https://www.asharas.in/manifest.webmanifest",
-  "signingKey": { "path": "./android.keystore", "alias": "asharas" },
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "asharas"
+  },
   "fallbackType": "customtabs",
   "features": {},
   "shortcuts": [],
@@ -25,5 +28,7 @@
   "isChromeOSOnly": false,
   "isMetaQuest": false,
   "fullScopeUrl": "https://www.asharas.in/",
+  "splashScreenFadeOutDuration": 300,
+  "splashScreenBackgroundColor": "#06080d",
   "generatorApp": "bubblewrap-cli"
 }
