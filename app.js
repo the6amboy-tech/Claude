@@ -538,6 +538,102 @@ async function searchSongs(query, limit = 25, ttl = API_TTL) {
 
 const langPrefix = () => (el.langSelect.value ? `${el.langSelect.value} ` : "");
 
+/* ---------- Mood categories (real category songs, not name matches) ----------
+   Instead of searching "sad songs" (which returns tracks literally titled
+   "sad"), we look up a matching mood *playlist* and play its curated tracks,
+   and push any literal-name matches to the bottom. Falls back to a normal
+   song search if playlists aren't available. */
+const MOOD_CATEGORIES = {
+  "hip hop hits":                 { word: "hip hop",    demote: "hip hop" },
+  "chill lofi songs":             { word: "chill lofi", demote: "chill" },
+  "party dance hits":             { word: "party",      demote: "party" },
+  "workout gym motivation songs": { word: "workout",    demote: "workout" },
+  "romantic love songs":          { word: "romantic",   demote: "romantic" },
+  "instrumental focus study":     { word: "focus",      demote: "focus" },
+  "trending hit songs 2026":      { word: "trending",   demote: "trending" },
+  "sad emotional songs":          { word: "sad",        demote: "sad" },
+};
+
+// Stable-partition: songs whose title literally contains the mood word go last.
+function demoteLiteral(songs, word) {
+  if (!word) return songs;
+  const w = word.toLowerCase();
+  const clean = [], literal = [];
+  for (const s of songs) (s.title.toLowerCase().includes(w) ? literal : clean).push(s);
+  return clean.concat(literal);
+}
+
+async function searchPlaylistId(query) {
+  const key = `pl:${query.toLowerCase()}`;
+  const cached = apiCacheGet(key);
+  if (cached && Date.now() - cached.ts < API_TTL_LONG) return cached.data;
+  await apiSlot();
+  try {
+    const json = await fetchWithRetry(`${API_BASE}/api/search/playlists?query=${encodeURIComponent(query)}&limit=5`);
+    const results = json.data?.results || json.results || [];
+    const id = results[0]?.id || null;
+    if (id) apiCacheSet(key, id);
+    return id;
+  } finally { apiRelease(); }
+}
+
+async function playlistSongs(id) {
+  const key = `pls:${id}`;
+  const cached = apiCacheGet(key);
+  if (cached && Date.now() - cached.ts < API_TTL_LONG) return cached.data;
+  await apiSlot();
+  try {
+    const json = await fetchWithRetry(`${API_BASE}/api/playlists?id=${encodeURIComponent(id)}&limit=40`);
+    const raw = json.data?.songs || json.data?.list || json.songs || [];
+    const songs = raw.map(normalizeSong).filter((s) => s.streamUrl);
+    if (songs.length) apiCacheSet(key, songs);
+    return songs;
+  } finally { apiRelease(); }
+}
+
+// Returns real category songs for a mood, honoring the active language.
+async function fetchMoodSongs(dataQ) {
+  const cat = MOOD_CATEGORIES[dataQ] || { word: dataQ, demote: "" };
+  const lang = langPrefix();
+  // 1) Prefer a curated mood playlist for genuine category tracks.
+  try {
+    const id = await searchPlaylistId(`${lang}${cat.word} songs`.trim());
+    if (id) {
+      const songs = demoteLiteral(diversifySongs(await playlistSongs(id)), cat.demote);
+      if (songs.length >= 5) return songs;
+    }
+  } catch { /* playlists unavailable — fall through to song search */ }
+  // 2) Fall back to a song search (language-scoped, then unscoped).
+  let songs = diversifySongs(await searchSongs(`${lang}${dataQ}`.trim()));
+  if (!songs.length) songs = diversifySongs(await searchSongs(dataQ));
+  return demoteLiteral(songs, cat.demote);
+}
+
+// Render a mood category into the list view (with spinner + retry).
+async function runMood(dataQ, label) {
+  const title = `${label} · ${el.langSelect.value || "All languages"}`;
+  showView("list");
+  el.listTitle.textContent = title;
+  el.results.innerHTML = '<div class="spinner"></div>';
+  try {
+    const songs = await fetchMoodSongs(dataQ);
+    renderList(songs, title);
+    if (!songs.length) toast("No songs found for this category");
+  } catch (err) {
+    console.error(err);
+    el.results.innerHTML = "";
+    const note = document.createElement("p");
+    note.className = "empty-note error";
+    note.textContent = "Couldn't load this category right now. ";
+    const retry = document.createElement("button");
+    retry.className = "pill-btn ghost";
+    retry.textContent = "↻ Retry";
+    retry.addEventListener("click", () => runMood(dataQ, label));
+    note.appendChild(retry);
+    el.results.appendChild(note);
+  }
+}
+
 /* ---------- Views ---------- */
 
 function showView(name) {
@@ -1453,11 +1549,7 @@ el.moodGrid.addEventListener("click", (e) => {
   activeMoodQuery = card.dataset.q;
   activeMoodLabel = label;
   activeSearchQuery = null;
-  runSearch(
-    `${langPrefix()}${card.dataset.q}`,
-    `${label} · ${el.langSelect.value || "All languages"}`,
-    card.dataset.q // fall back to the unscoped genre query, never an empty list
-  );
+  runMood(card.dataset.q, label);
 });
 
 // Language — re-filter the open mood OR text search, and reload home sections
@@ -1467,11 +1559,7 @@ el.langSelect.addEventListener("change", () => {
   loadAllLangSections();
   const langLabel = el.langSelect.value || "All languages";
   if (activeMoodQuery) {
-    runSearch(
-      `${langPrefix()}${activeMoodQuery}`,
-      `${activeMoodLabel} · ${langLabel}`,
-      activeMoodQuery
-    );
+    runMood(activeMoodQuery, activeMoodLabel);
   } else if (activeSearchQuery) {
     // Re-run the last search scoped to the new language; fall back to the raw
     // query if the language-scoped one has no matches, so it never goes empty.
