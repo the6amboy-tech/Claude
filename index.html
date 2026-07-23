@@ -43,6 +43,35 @@
     "author": { "@type": "Person", "name": "Karthik" }
   }
   </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://www.asharas.in/#org",
+        "name": "Asharas",
+        "url": "https://www.asharas.in/",
+        "logo": "https://www.asharas.in/icons/icon-512.png",
+        "founder": { "@type": "Person", "name": "Karthik" }
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://www.asharas.in/#website",
+        "name": "Asharas",
+        "alternateName": ["Asharas Music", "Asharas Music Player"],
+        "url": "https://www.asharas.in/",
+        "publisher": { "@id": "https://www.asharas.in/#org" },
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": { "@type": "EntryPoint", "urlTemplate": "https://www.asharas.in/?q={search_term_string}" },
+          "query-input": "required name=search_term_string"
+        }
+      }
+    ]
+  }
+  </script>
+  <meta name="application-name" content="Asharas" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Sora:wght@500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
