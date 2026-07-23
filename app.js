@@ -152,6 +152,7 @@ let sessionCode = null;
 let isHost = false;
 let activeMoodQuery = null;
 let activeMoodLabel = null;
+let activeSearchQuery = null; // last text search, so a language change can re-run it
 
 // Real cross-device participants, keyed by client id -> display name.
 let sessionParticipants = new Map();
@@ -1352,9 +1353,9 @@ el.navBtns.forEach((btn) =>
     const nav = btn.dataset.nav;
     if (nav === "home") showView("home");
     else if (nav === "search") { showView("home"); el.input.focus(); window.scrollTo({ top: 0, behavior: "smooth" }); }
-    else if (nav === "favorites") { activeMoodQuery = null; activeMoodLabel = null; renderList(favs, "Favorites"); showView("list"); }
+    else if (nav === "favorites") { activeMoodQuery = null; activeMoodLabel = null; activeSearchQuery = null; renderList(favs, "Favorites"); showView("list"); }
     else if (nav === "queue") { renderQueue(); showView("queue"); }
-    else if (nav === "playlists") { activeMoodQuery = null; activeMoodLabel = null; renderPlaylists(); showView("playlists"); }
+    else if (nav === "playlists") { activeMoodQuery = null; activeMoodLabel = null; activeSearchQuery = null; renderPlaylists(); showView("playlists"); }
   })
 );
 el.backHome.addEventListener("click", () => showView("home"));
@@ -1378,6 +1379,7 @@ el.form.addEventListener("submit", (e) => {
   if (!query) return;
   activeMoodQuery = null;
   activeMoodLabel = null;
+  activeSearchQuery = query; // remember it so a language change can re-filter
   const modeLabel = { song: "Songs", artist: "Artist", language: el.langSelect.value || "Language" }[searchMode];
   runSearch(buildSearchQuery(query, searchMode), `${modeLabel} · "${query}"`);
 });
@@ -1450,6 +1452,7 @@ el.moodGrid.addEventListener("click", (e) => {
     .trim();
   activeMoodQuery = card.dataset.q;
   activeMoodLabel = label;
+  activeSearchQuery = null;
   runSearch(
     `${langPrefix()}${card.dataset.q}`,
     `${label} · ${el.langSelect.value || "All languages"}`,
@@ -1457,16 +1460,25 @@ el.moodGrid.addEventListener("click", (e) => {
   );
 });
 
-// Language — re-filter active mood if one is selected + reload home sections
+// Language — re-filter the open mood OR text search, and reload home sections
 el.langSelect.addEventListener("change", () => {
   saveJSON("ash_lang", el.langSelect.value);
   loadTrending();
   loadAllLangSections();
+  const langLabel = el.langSelect.value || "All languages";
   if (activeMoodQuery) {
     runSearch(
       `${langPrefix()}${activeMoodQuery}`,
-      `${activeMoodLabel} · ${el.langSelect.value || "All languages"}`,
+      `${activeMoodLabel} · ${langLabel}`,
       activeMoodQuery
+    );
+  } else if (activeSearchQuery) {
+    // Re-run the last search scoped to the new language; fall back to the raw
+    // query if the language-scoped one has no matches, so it never goes empty.
+    runSearch(
+      `${langPrefix()}${activeSearchQuery}`.trim(),
+      `${activeSearchQuery} · ${langLabel}`,
+      activeSearchQuery
     );
   }
 });
