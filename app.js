@@ -1,6 +1,14 @@
 /* ============ Asharas music player ============ */
 const API_BASE = "https://jiosaavn-api-one-rho.vercel.app";
-const FACTS_API = "https://uselessfacts.jsph.pl/api/v2/facts/random";
+const NEWS_RSS = "https://api.rss2json.com/v1/api.json?rss_url=";
+const NEWS_FEEDS = {
+  top:     "https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en",
+  world:   "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx1YlY4U0FtVnVHZ0pWVXlnQVAB?hl=en-IN&gl=IN&ceid=IN:en",
+  sports:  "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1ZEdvU0FtVnVHZ0pWVXlnQVAB?hl=en-IN&gl=IN&ceid=IN:en",
+  business:"https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtVnVHZ0pWVXlnQVAB?hl=en-IN&gl=IN&ceid=IN:en",
+  tech:    "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB?hl=en-IN&gl=IN&ceid=IN:en",
+};
+const CAT_LABELS = { top:"Top Stories", world:"World", sports:"Sports", business:"Business", tech:"Tech" };
 
 // Neutral glass-toned placeholder shown when a song has no artwork
 const COVER_FALLBACK =
@@ -44,8 +52,9 @@ const el = {
   filterPills: [...document.querySelectorAll(".filter-pill")],
   recentsSection: $("recents-section"),
   recentsRow: $("recents-row"),
-  factText: $("fact-text"),
-  factRefresh: $("fact-refresh"),
+  newsContainer: $("news-container"),
+  newsPills: [...document.querySelectorAll(".news-pill")],
+  newsRefresh: $("news-refresh"),
   listenTogether: $("listen-together"),
   navBtns: [...document.querySelectorAll("[data-nav]")],
   player: $("player"),
@@ -1253,15 +1262,87 @@ document.querySelectorAll(".see-all-lang").forEach((btn) => {
   });
 });
 
-async function loadFact() {
-  el.factText.textContent = "Loading fun fact…";
-  try {
-    const res = await fetch(FACTS_API);
-    const json = await res.json();
-    el.factText.textContent = json.text;
-  } catch {
-    el.factText.textContent = "Fun facts are taking a break — try a refresh.";
+let currentNewsCat = "top";
+let allNews = {}; // cat -> [{title, link, pubDate, source}]
+
+async function loadNews(cat) {
+  if (!el.newsContainer) return;
+  el.newsContainer.innerHTML = '<p class="empty-note">Loading news…</p>';
+
+  // If we already have cached data for this category, render it immediately
+  if (allNews[cat] && allNews[cat].length) {
+    renderNews(allNews[cat], cat);
+    return;
   }
+
+  try {
+    const url = NEWS_RSS + encodeURIComponent(NEWS_FEEDS[cat] || NEWS_FEEDS.top);
+    const res = await fetch(url);
+    const json = await res.json();
+    if (!json.items || !json.items.length) {
+      el.newsContainer.innerHTML = '<p class="empty-note">No news available right now.</p>';
+      return;
+    }
+    allNews[cat] = json.items.map(item => ({
+      title: item.title,
+      link: item.link,
+      pubDate: item.pubDate,
+      source: item.author || json.feed?.title || "News",
+    }));
+    renderNews(allNews[cat], cat);
+  } catch (err) {
+    console.error("News load error:", err);
+    el.newsContainer.innerHTML = '<p class="empty-note">Couldn\'t load news — tap refresh to try again.</p>';
+  }
+}
+
+function renderNews(articles, cat) {
+  el.newsContainer.innerHTML = "";
+  articles.slice(0, 15).forEach(article => {
+    const item = document.createElement("a");
+    item.className = "news-item";
+    item.href = article.link;
+    item.target = "_blank";
+    item.rel = "noopener noreferrer";
+
+    const title = document.createElement("div");
+    title.className = "news-item-title";
+    title.textContent = article.title;
+
+    const meta = document.createElement("div");
+    meta.className = "news-item-meta";
+
+    const source = document.createElement("span");
+    source.className = "news-item-source";
+    source.textContent = article.source;
+
+    const badge = document.createElement("span");
+    badge.className = "news-item-cat";
+    badge.textContent = CAT_LABELS[cat] || "News";
+
+    const time = document.createElement("span");
+    time.textContent = formatNewsTime(article.pubDate);
+
+    meta.append(source, badge, time);
+    item.append(title, meta);
+    el.newsContainer.appendChild(item);
+  });
+
+  if (!articles.length) {
+    el.newsContainer.innerHTML = '<p class="empty-note">No news available right now.</p>';
+  }
+}
+
+function formatNewsTime(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  const mins = Math.floor((Date.now() - d.getTime()) / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
 }
 
 /* ---------- Synced lyrics (LRCLIB — free, no keys) ---------- */
@@ -1637,7 +1718,19 @@ el.seeAll.addEventListener("click", () => {
 });
 
 // Fun facts
-el.factRefresh.addEventListener("click", loadFact);
+// News category pills
+el.newsPills.forEach(pill => {
+  pill.addEventListener("click", () => {
+    el.newsPills.forEach(p => p.classList.remove("active"));
+    pill.classList.add("active");
+    currentNewsCat = pill.dataset.cat;
+    loadNews(currentNewsCat);
+  });
+});
+el.newsRefresh?.addEventListener("click", () => {
+  delete allNews[currentNewsCat];
+  loadNews(currentNewsCat);
+});
 
 // Listen Together — open choice modal
 el.listenTogether.addEventListener("click", () => el.ltDialog.showModal());
@@ -2085,7 +2178,7 @@ paintRange(el.volume);
 paintRange(el.seek);
 if (lyricsOpen) setLyricsOpen(true); // restore panel from last visit
 renderRecents();
-loadFact();
+loadNews("top");
 loadTrending();
 loadAllLangSections();
 

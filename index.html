@@ -204,10 +204,22 @@
           <button class="mood-card" data-q="sad emotional songs" style="--tint: 215"><span class="mood-emoji">🌧️</span>Sad</button>
         </div>
 
-        <div class="fact-card glass">
-          <h2 class="section-head"><span class="head-bar"></span>✨ Did you know?</h2>
-          <p id="fact-text">Loading fun fact…</p>
-          <button class="pill-btn ghost" id="fact-refresh">Refresh</button>
+        <div class="news-card glass">
+          <div class="news-head">
+            <h2 class="section-head"><span class="head-bar"></span>📰 Latest News</h2>
+            <button class="pill-btn ghost" id="news-refresh" title="Refresh news">↻</button>
+          </div>
+          <div class="news-pills" id="news-pills">
+            <button class="news-pill active" data-cat="top">Top Stories</button>
+            <button class="news-pill" data-cat="india">India</button>
+            <button class="news-pill" data-cat="world">World</button>
+            <button class="news-pill" data-cat="sports">Sports</button>
+            <button class="news-pill" data-cat="business">Business</button>
+            <button class="news-pill" data-cat="tech">Tech</button>
+          </div>
+          <div id="news-container" class="news-container">
+            <p class="empty-note">Loading news…</p>
+          </div>
         </div>
 
         <section id="recents-section" hidden>
