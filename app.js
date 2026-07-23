@@ -16,8 +16,8 @@ const COVER_FALLBACK =
 const $ = (id) => document.getElementById(id);
 const el = {
   welcome: $("welcome"),
-  cardMood: $("card-mood"),
-  cardNormal: $("card-normal"),
+  cardDownload: $("card-download"),
+  cardBrowser: $("card-browser"),
   form: $("search-form"),
   input: $("search-input"),
   viewHome: $("view-home"),
@@ -1438,10 +1438,37 @@ function dismissWelcome(then) {
   el.welcome.classList.add("leave");
   setTimeout(() => { el.welcome.remove(); then?.(); }, 550);
 }
-el.cardNormal.addEventListener("click", () => dismissWelcome(() => el.input.focus()));
-el.cardMood.addEventListener("click", () =>
-  dismissWelcome(() => el.moodGrid.scrollIntoView({ behavior: "smooth", block: "center" }))
-);
+
+// PWA install prompt
+let deferredPrompt = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+});
+
+// If already running as installed app (standalone mode), skip welcome entirely
+const isStandalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+if (isStandalone && el.welcome) {
+  el.welcome.remove();
+} else {
+  // Download Asharas — trigger browser's native install prompt
+  el.cardDownload.addEventListener("click", async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      dismissWelcome(outcome === "accepted" ? () => toast("Asharas installed! 🎉") : undefined);
+    } else {
+      // Fallback: browser doesn't support install prompt or already dismissed
+      dismissWelcome(() => {
+        toast("Tap ⋮ → 'Add to Home Screen' to install");
+      });
+    }
+  });
+
+  // Continue in browser — just enter the app
+  el.cardBrowser.addEventListener("click", () => dismissWelcome(() => el.input.focus()));
+}
 
 // Navigation
 el.navBtns.forEach((btn) =>

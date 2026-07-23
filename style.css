@@ -125,6 +125,7 @@ button { font: inherit; color: inherit; }
   margin: 38px 0 30px;
 }
 .mode-card {
+  position: relative;
   cursor: pointer;
   border-radius: 24px;
   padding: 28px 22px;
@@ -132,7 +133,7 @@ button { font: inherit; color: inherit; }
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  transition: transform 0.35s var(--ease-spring), background 0.3s, box-shadow 0.35s;
+  transition: transform 0.35s var(--ease-spring), background 0.3s, box-shadow 0.35s, border-color 0.35s;
   animation: intro 0.9s var(--ease-spring) 0.35s backwards;
 }
 .mode-card:last-child { animation-delay: 0.5s; }
@@ -140,6 +141,58 @@ button { font: inherit; color: inherit; }
   background: var(--glass-hover);
   transform: translateY(-6px) scale(1.02);
   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.55);
+}
+/* Primary download card — accent glow, recommended badge */
+.mode-card--primary {
+  border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  background: linear-gradient(160deg,
+    color-mix(in srgb, var(--accent) 25%, transparent),
+    color-mix(in srgb, var(--accent-2) 10%, transparent));
+  box-shadow: 0 0 30px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+.mode-card--primary:hover {
+  border-color: color-mix(in srgb, var(--accent) 80%, transparent);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.55),
+              0 0 40px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.mode-card--primary .mode-emoji {
+  animation: download-bounce 2.5s ease-in-out infinite;
+}
+@keyframes download-bounce {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+/* Secondary browser card — subtle ghost style */
+.mode-card--secondary {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+}
+.mode-card--secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+/* Recommended badge */
+.mode-badge {
+  position: absolute;
+  top: -8px;
+  right: -4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  padding: 4px 12px;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 40%, transparent),
+              0 0 20px color-mix(in srgb, var(--accent-2) 20%, transparent);
+  animation: badge-pulse 3s ease-in-out infinite;
+}
+@keyframes badge-pulse {
+  0%, 100% { box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 40%, transparent); }
+  50%      { box-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 60%, transparent),
+                        0 0 30px color-mix(in srgb, var(--accent-2) 30%, transparent); }
 }
 .mode-emoji { font-size: 2.2rem; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.5)); }
 .mode-title { font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; letter-spacing: -0.01em; }
@@ -1452,6 +1505,9 @@ dialog .pill-btn.ghost { width: 100%; justify-content: center; }
 .creator-chip:hover { transform: translateY(-2px); background: var(--glass-hover); }
 
 @media (max-width: 600px) {
+  .mode-cards { grid-template-columns: 1fr; gap: 14px; margin: 28px 0 24px; }
+  .mode-card { padding: 22px 18px; }
+  .mode-badge { font-size: 0.55rem; padding: 3px 10px; top: -6px; right: -2px; }
   .creator-section { flex-direction: column; text-align: center; padding: 24px 18px; }
   .creator-chips { justify-content: center; }
   .creator-bio { margin: 0 auto; }
