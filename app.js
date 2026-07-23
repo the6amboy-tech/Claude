@@ -1017,6 +1017,7 @@ function playIndex(i) {
   syncFavUI();
   updateQueueUI();
   pushRecent(song);
+  if (typeof syncNowPlaying === "function") syncNowPlaying();
   if (lyricsOpen) loadLyricsFor(song);
   else { lyricsSongId = null; lyricsLines = []; }
 
@@ -2079,3 +2080,152 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   });
 }
+
+/* ---------- Mobile Now Playing (3D coverflow, Apple glass) ---------- */
+const np = {
+  root: document.getElementById("now-playing"),
+  backdrop: document.getElementById("np-backdrop"),
+  flow: document.getElementById("np-flow"),
+  title: document.getElementById("np-title"),
+  artist: document.getElementById("np-artist"),
+  cur: document.getElementById("np-cur"),
+  tot: document.getElementById("np-tot"),
+  seek: document.getElementById("np-seek"),
+  play: document.getElementById("np-play"),
+  prev: document.getElementById("np-prev"),
+  next: document.getElementById("np-next"),
+  shuffle: document.getElementById("np-shuffle"),
+  repeat: document.getElementById("np-repeat"),
+  fav: document.getElementById("np-fav"),
+  close: document.getElementById("np-close"),
+};
+const NP_RANGE = 3;
+const npCards = new Map(); // song id -> card element (kept stable so covers glide)
+const npMobile = () => matchMedia("(max-width: 900px)").matches;
+let npSeeking = false;
+
+function npList() {
+  const cur = queue[currentIndex];
+  if (queue.length && cur) return { list: queue, idx: currentIndex };
+  if (cur) return { list: [cur], idx: 0 };
+  return { list: [], idx: -1 };
+}
+
+function npPlaceCard(card, d) {
+  const abs = Math.abs(d);
+  const tx = -50 + d * 46;
+  const ry = d === 0 ? 0 : (d < 0 ? 35 : -35);
+  const sc = d === 0 ? 1 : Math.max(0.66, 0.85 - (abs - 1) * 0.08);
+  const tz = d === 0 ? 0 : -50 - (abs - 1) * 45;
+  card.style.transform = `translate(${tx}%, -50%) translateZ(${tz}px) rotateY(${ry}deg) scale(${sc})`;
+  card.style.zIndex = String(50 - abs);
+  card.style.opacity = abs > NP_RANGE ? "0" : "1";
+}
+
+function buildNPFlow() {
+  const { list, idx } = npList();
+  if (idx < 0) { np.flow.innerHTML = ""; npCards.clear(); return; }
+  const needed = new Map();
+  for (let d = -NP_RANGE; d <= NP_RANGE; d++) {
+    const i = idx + d;
+    if (i >= 0 && i < list.length) needed.set(list[i].id, { d, song: list[i], i, list });
+  }
+  for (const [id, card] of npCards) if (!needed.has(id)) { card.remove(); npCards.delete(id); }
+  for (const [id, info] of needed) {
+    let card = npCards.get(id);
+    if (!card) {
+      card = document.createElement("div");
+      card.className = "np-card";
+      const img = document.createElement("img");
+      img.src = info.song.cover || COVER_FALLBACK;
+      img.alt = "";
+      img.onerror = () => { img.onerror = null; img.src = COVER_FALLBACK; };
+      card.appendChild(img);
+      card.addEventListener("click", () => {
+        if (card._d === 0) el.btnPlay.click();
+        else { queue = card._list; playIndex(card._i); }
+      });
+      np.flow.appendChild(card);
+      npCards.set(id, card);
+    }
+    card._d = info.d; card._i = info.i; card._list = info.list;
+    card.classList.toggle("center", info.d === 0);
+    npPlaceCard(card, info.d);
+  }
+}
+
+function npSyncPlayState() {
+  np.root.classList.toggle("playing", !el.audio.paused);
+  np.shuffle.classList.toggle("lit", shuffleOn);
+  np.repeat.classList.toggle("lit", repeatMode !== "off");
+}
+function npSyncSeek() {
+  if (npSeeking) return;
+  np.cur.textContent = formatTime(el.audio.currentTime);
+  np.tot.textContent = formatTime(el.audio.duration);
+  np.seek.max = el.audio.duration || 0;
+  np.seek.value = el.audio.currentTime;
+  paintRange(np.seek);
+}
+function syncNowPlaying() {
+  const song = queue[currentIndex];
+  if (!song) return;
+  np.title.textContent = song.title;
+  np.artist.textContent = song.artist;
+  np.backdrop.style.backgroundImage = `url("${(song.cover || COVER_FALLBACK).replace(/"/g, "")}")`;
+  np.fav.classList.toggle("lit", isFav(song.id));
+  if (!np.root.hidden) { buildNPFlow(); npSyncPlayState(); npSyncSeek(); }
+}
+
+function openNowPlaying() {
+  if (!queue[currentIndex]) return;
+  np.root.hidden = false;
+  np.root.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+  syncNowPlaying(); buildNPFlow(); npSyncPlayState(); npSyncSeek();
+}
+function closeNowPlaying() {
+  np.root.classList.add("closing");
+  setTimeout(() => {
+    np.root.hidden = true;
+    np.root.classList.remove("closing");
+    np.root.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+  }, 340);
+}
+
+// Wire controls (reuse the main player's logic so behaviour stays in sync)
+np.play.addEventListener("click", () => el.btnPlay.click());
+np.prev.addEventListener("click", () => el.btnPrev.click());
+np.next.addEventListener("click", () => el.btnNext.click());
+np.shuffle.addEventListener("click", () => { el.btnShuffle.click(); npSyncPlayState(); });
+np.repeat.addEventListener("click", () => { el.btnRepeat.click(); npSyncPlayState(); });
+np.fav.addEventListener("click", () => {
+  el.btnFav.click();
+  const s = queue[currentIndex];
+  if (s) np.fav.classList.toggle("lit", isFav(s.id));
+});
+np.close.addEventListener("click", closeNowPlaying);
+np.seek.addEventListener("input", () => { npSeeking = true; np.cur.textContent = formatTime(Number(np.seek.value)); paintRange(np.seek); });
+np.seek.addEventListener("change", () => { el.audio.currentTime = Number(np.seek.value); npSeeking = false; });
+
+// Open by tapping the player bar on mobile
+const playerTrackEl = document.querySelector(".player-track");
+if (playerTrackEl) playerTrackEl.addEventListener("click", () => { if (npMobile()) openNowPlaying(); });
+
+// Swipe the coverflow to change tracks
+let npSx = 0, npSwiping = false;
+np.flow.addEventListener("pointerdown", (e) => { npSx = e.clientX; npSwiping = true; });
+np.flow.addEventListener("pointerup", (e) => {
+  if (!npSwiping) return; npSwiping = false;
+  const dx = e.clientX - npSx;
+  if (dx > 45) el.btnPrev.click();
+  else if (dx < -45) el.btnNext.click();
+});
+
+// Keep in sync with playback + collapse if the viewport grows to desktop
+el.audio.addEventListener("play", npSyncPlayState);
+el.audio.addEventListener("pause", npSyncPlayState);
+el.audio.addEventListener("timeupdate", () => { if (!np.root.hidden) npSyncSeek(); });
+el.audio.addEventListener("loadedmetadata", () => { if (!np.root.hidden) npSyncSeek(); });
+window.addEventListener("resize", () => { if (!np.root.hidden && !npMobile()) closeNowPlaying(); });
