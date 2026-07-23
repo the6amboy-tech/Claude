@@ -2205,6 +2205,13 @@ loadNews("top");
 loadTrending();
 loadAllLangSections();
 
+// Auto-refresh news every 6 minutes so headlines stay current
+let newsRefreshTimer = setInterval(() => {
+  try { localStorage.removeItem(newsCacheKey(currentNewsCat)); } catch {}
+  allNews[currentNewsCat] = null;
+  loadNews(currentNewsCat);
+}, 360000);
+
 // Deep links: ?session=<CODE> auto-joins a session; ?q=&song= shares a song
 (async () => {
   const params = new URLSearchParams(location.search);
