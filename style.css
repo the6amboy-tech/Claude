@@ -1581,12 +1581,31 @@ dialog .pill-btn.ghost { width: 100%; justify-content: center; }
 }
 .creator-chip:hover { transform: translateY(-2px); background: var(--glass-hover); }
 
+.creator-socials { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.creator-social {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 0.82rem; font-weight: 600; text-decoration: none;
+  padding: 8px 15px; border-radius: 999px;
+  color: var(--text);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.14);
+  transition: transform 0.2s var(--ease-spring), background 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.creator-social svg { flex: none; opacity: 0.9; }
+.creator-social:hover {
+  transform: translateY(-2px);
+  background: var(--glass-hover);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+}
+
 @media (max-width: 600px) {
   .mode-cards { grid-template-columns: 1fr; gap: 14px; margin: 28px 0 24px; }
   .mode-card { padding: 22px 18px; }
   .mode-badge { font-size: 0.55rem; padding: 3px 10px; top: -6px; right: -2px; }
   .creator-section { flex-direction: column; text-align: center; padding: 24px 18px; }
   .creator-chips { justify-content: center; }
+  .creator-socials { justify-content: center; }
   .creator-bio { margin: 0 auto; }
 }
 

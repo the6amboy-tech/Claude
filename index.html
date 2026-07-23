@@ -8,8 +8,8 @@
   <!-- SEO -->
   <title>Asharas Music — Free Online Music Player, Search & Listen Together</title>
   <meta name="description" content="Asharas is a free online music player — search and stream songs, build playlists, sing along with synced lyrics, and listen together with friends in real time. Made by Karthik." />
-  <meta name="keywords" content="Asharas, Asharas music, Asharas music player, online music player, free music streaming, listen together, synced lyrics, Telugu Hindi English songs" />
-  <meta name="author" content="Karthik" />
+  <meta name="keywords" content="Asharas, Asharas music, Asharas music player, Karthik Kotapati, Karthik Kotapati founder, founder of Asharas, online music player, free music streaming, listen together, synced lyrics, Telugu Hindi English songs" />
+  <meta name="author" content="Karthik Kotapati" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://www.asharas.in/" />
 
@@ -40,7 +40,7 @@
     "browserRequirements": "Requires JavaScript",
     "image": "https://www.asharas.in/og-image.png",
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-    "author": { "@type": "Person", "name": "Karthik" }
+    "author": { "@id": "https://www.asharas.in/#karthik" }
   }
   </script>
   <script type="application/ld+json">
@@ -51,9 +51,38 @@
         "@type": "Organization",
         "@id": "https://www.asharas.in/#org",
         "name": "Asharas",
+        "alternateName": ["Asharas Music", "Asharas Music Player"],
         "url": "https://www.asharas.in/",
         "logo": "https://www.asharas.in/icons/icon-512.png",
-        "founder": { "@type": "Person", "name": "Karthik" }
+        "founder": { "@id": "https://www.asharas.in/#karthik" }
+      },
+      {
+        "@type": "Person",
+        "@id": "https://www.asharas.in/#karthik",
+        "name": "Karthik Kotapati",
+        "givenName": "Karthik",
+        "familyName": "Kotapati",
+        "url": "https://www.asharas.in/",
+        "image": "https://www.asharas.in/icons/icon-512.png",
+        "jobTitle": "Founder",
+        "description": "Karthik Kotapati is the founder and creator of Asharas, a free online music player. A self-taught developer from a non-tech background.",
+        "worksFor": { "@id": "https://www.asharas.in/#org" },
+        "founder": { "@id": "https://www.asharas.in/#org" },
+        "knowsAbout": ["Web development", "API integration", "Music streaming", "UI design"],
+        "sameAs": [
+          "https://www.linkedin.com/in/karthik-kotapati-4883a935b/",
+          "https://www.instagram.com/_karthik_kotapati/",
+          "https://x.com/karthikeditzz"
+        ]
+      },
+      {
+        "@type": "ProfilePage",
+        "@id": "https://www.asharas.in/#profilepage",
+        "url": "https://www.asharas.in/",
+        "name": "Karthik Kotapati — Founder of Asharas",
+        "mainEntity": { "@id": "https://www.asharas.in/#karthik" },
+        "about": { "@id": "https://www.asharas.in/#karthik" },
+        "isPartOf": { "@id": "https://www.asharas.in/#website" }
       },
       {
         "@type": "WebSite",
@@ -62,6 +91,7 @@
         "alternateName": ["Asharas Music", "Asharas Music Player"],
         "url": "https://www.asharas.in/",
         "publisher": { "@id": "https://www.asharas.in/#org" },
+        "author": { "@id": "https://www.asharas.in/#karthik" },
         "potentialAction": {
           "@type": "SearchAction",
           "target": { "@type": "EntryPoint", "urlTemplate": "https://www.asharas.in/?q={search_term_string}" },
@@ -308,13 +338,27 @@
         <section class="creator-section">
           <div class="creator-avatar"><span>K</span></div>
           <div class="creator-info">
-            <span class="creator-tag">✦ Creator</span>
-            <h3 class="creator-name">Made by Karthik</h3>
-            <p class="creator-bio">Hey! I'm Karthik — 18, from a non-tech background. I taught myself coding, API integration and web design out of pure passion for tech. Asharas is my contribution to music. 🪷</p>
+            <span class="creator-tag">✦ Founder of Asharas</span>
+            <h3 class="creator-name">Karthik Kotapati</h3>
+            <p class="creator-bio">Hey! I'm Karthik Kotapati — 18, from a non-tech background and the founder of Asharas. I taught myself coding, API integration and web design out of pure passion for tech. Asharas is my contribution to music. 🪷</p>
             <div class="creator-chips">
               <span class="creator-chip">Self-taught developer</span>
               <span class="creator-chip">API &amp; web design</span>
               <span class="creator-chip">🎧 Music lover</span>
+            </div>
+            <div class="creator-socials">
+              <a class="creator-social" href="https://www.linkedin.com/in/karthik-kotapati-4883a935b/" target="_blank" rel="me noopener" aria-label="Karthik Kotapati on LinkedIn" title="LinkedIn">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.13 1.44-2.13 2.94v5.67H9.35V9h3.42v1.56h.05c.48-.9 1.63-1.85 3.36-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"/></svg>
+                <span>LinkedIn</span>
+              </a>
+              <a class="creator-social" href="https://www.instagram.com/_karthik_kotapati/" target="_blank" rel="me noopener" aria-label="Karthik Kotapati on Instagram" title="Instagram">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16zm0 3.68a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm7.85-10.4a1.44 1.44 0 1 1-2.88 0 1.44 1.44 0 0 1 2.88 0z"/></svg>
+                <span>Instagram</span>
+              </a>
+              <a class="creator-social" href="https://x.com/karthikeditzz" target="_blank" rel="me noopener" aria-label="Karthik Kotapati on X" title="X">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.22-6.82-5.97 6.82H1.66l7.73-8.84L1.24 2.25h6.83l4.71 6.23 5.46-6.23zm-1.16 17.52h1.83L7.01 4.13H5.05l12.03 15.64z"/></svg>
+                <span>X</span>
+              </a>
             </div>
           </div>
         </section>
