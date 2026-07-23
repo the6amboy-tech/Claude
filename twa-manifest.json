@@ -1,6 +1,6 @@
 {
   "packageId": "io.github.the6amboy.asharas",
-  "host": "the6amboy-tech.github.io",
+  "host": "www.asharas.in",
   "name": "Asharas",
   "launcherName": "Asharas",
   "display": "standalone",
@@ -11,10 +11,10 @@
   "navigationColorDark": "#06080d",
   "backgroundColor": "#06080d",
   "enableNotifications": false,
-  "startUrl": "/Claude/",
-  "iconUrl": "https://the6amboy-tech.github.io/Claude/icons/icon-512.png",
-  "maskableIconUrl": "https://the6amboy-tech.github.io/Claude/icons/icon-maskable-512.png",
-  "webManifestUrl": "https://the6amboy-tech.github.io/Claude/manifest.webmanifest",
+  "startUrl": "/",
+  "iconUrl": "https://www.asharas.in/icons/icon-512.png",
+  "maskableIconUrl": "https://www.asharas.in/icons/icon-maskable-512.png",
+  "webManifestUrl": "https://www.asharas.in/manifest.webmanifest",
   "signingKey": { "path": "./android.keystore", "alias": "asharas" },
   "fallbackType": "customtabs",
   "features": {},
@@ -24,6 +24,6 @@
   "minSdkVersion": 23,
   "isChromeOSOnly": false,
   "isMetaQuest": false,
-  "fullScopeUrl": "https://the6amboy-tech.github.io/Claude/",
+  "fullScopeUrl": "https://www.asharas.in/",
   "generatorApp": "bubblewrap-cli"
 }

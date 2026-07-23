@@ -78,7 +78,7 @@ jobs:
             m.appVersionCode=parseInt('${{ github.event.inputs.versionCode }}',10);\
             m.signingKey={path:'./android.keystore',alias:'${{ secrets.ANDROID_KEY_ALIAS }}'};\
             require('fs').writeFileSync(f,JSON.stringify(m,null,2));"
-          bubblewrap init --manifest="https://the6amboy-tech.github.io/Claude/manifest.webmanifest" --directory=. --skipPwaValidation <<< "$(printf 'Y\n')" || true
+          bubblewrap init --manifest="https://www.asharas.in/manifest.webmanifest" --directory=. --skipPwaValidation <<< "$(printf 'Y\n')" || true
           # Regenerate the native project from the (committed) twa-manifest.json
           bubblewrap update --skipVersionUpgrade || true
 

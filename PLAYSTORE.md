@@ -1,7 +1,7 @@
 # Publishing Asharas to the Google Play Store
 
 Asharas is already an **installable app**. On Android Chrome, open
-<https://the6amboy-tech.github.io/Claude/> → menu (⋮) → **Add to Home screen /
+<https://www.asharas.in/> → menu (⋮) → **Add to Home screen /
 Install app**. It launches full-screen with its own icon, works offline for the
 shell, and behaves like a native app. On iOS use Safari → Share → **Add to Home
 Screen**. That covers most "make it an app" needs with zero cost.
@@ -25,7 +25,7 @@ below need **your** accounts/keys, so they can't be automated for you.
 npm install -g @bubblewrap/cli
 
 # From an empty folder, point it at the live manifest:
-bubblewrap init --manifest https://the6amboy-tech.github.io/Claude/manifest.webmanifest
+bubblewrap init --manifest https://www.asharas.in/manifest.webmanifest
 #   • accept the defaults from twa-manifest.json in this repo
 #   • package id suggestion: io.github.the6amboy.asharas
 #   • let it create a NEW signing key and SAVE the keystore + passwords
@@ -38,12 +38,12 @@ Bubblewrap prints an `assetlinks.json` (it contains your key's SHA-256). That
 file must be served at the **origin root**:
 
 ```
-https://the6amboy-tech.github.io/.well-known/assetlinks.json
+https://www.asharas.in/.well-known/assetlinks.json
 ```
 
 ⚠️ **Important:** this site lives at a *project* path (`/Claude/`), but asset
 links must sit at the *domain* root. GitHub Pages serves the domain root from a
-repo named exactly **`the6amboy-tech.github.io`**. So either:
+repo named exactly **`www.asharas.in`**. So either:
 - create that repo and put the file at `/.well-known/assetlinks.json`, **or**
 - point a **custom domain** (e.g. `asharas.app`) at this site and host
   `/.well-known/assetlinks.json` there (then update `host`/URLs in
