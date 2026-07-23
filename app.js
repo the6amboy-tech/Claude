@@ -1264,15 +1264,65 @@ document.querySelectorAll(".see-all-lang").forEach((btn) => {
 
 let currentNewsCat = "top";
 let allNews = {}; // cat -> [{title, link, pubDate, source}]
+const NEWS_TTL = 15 * 60 * 1000; // 15 minutes cache
+
+function newsCacheKey(cat) { return "ashnews:" + cat; }
+
+function loadNewsCache(cat) {
+  try {
+    const raw = localStorage.getItem(newsCacheKey(cat));
+    if (!raw) return null;
+    const { ts, data } = JSON.parse(raw);
+    if (Date.now() - ts > NEWS_TTL) return null;
+    return data;
+  } catch { return null; }
+}
+
+function saveNewsCache(cat, data) {
+  try { localStorage.setItem(newsCacheKey(cat), JSON.stringify({ ts: Date.now(), data })); } catch {}
+}
+
+function renderNews(articles, cat) {
+  if (!el.newsContainer) return;
+  if (!articles || !articles.length) {
+    el.newsContainer.innerHTML = '<p class="empty-note">No news available right now.</p>';
+    return;
+  }
+  // Build HTML string in one shot — much faster than createElement loop
+  let html = "";
+  articles.slice(0, 15).forEach(a => {
+    const t = formatNewsTime(a.pubDate);
+    const label = CAT_LABELS[cat] || "News";
+    html += `<a class="news-item" href="${a.link}" target="_blank" rel="noopener noreferrer">
+      <div class="news-item-title">${escHtml(a.title)}</div>
+      <div class="news-item-meta">
+        <span class="news-item-source">${escHtml(a.source)}</span>
+        <span class="news-item-cat">${label}</span>
+        <span>${t}</span>
+      </div>
+    </a>`;
+  });
+  el.newsContainer.innerHTML = html;
+}
+
+function escHtml(s) {
+  return s ? s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;") : "";
+}
 
 async function loadNews(cat) {
   if (!el.newsContainer) return;
-  el.newsContainer.innerHTML = '<p class="empty-note">Loading news…</p>';
 
-  // If we already have cached data for this category, render it immediately
-  if (allNews[cat] && allNews[cat].length) {
-    renderNews(allNews[cat], cat);
+  // Instant render from localStorage cache (no fetch needed)
+  const cached = loadNewsCache(cat);
+  if (cached) {
+    allNews[cat] = cached;
+    renderNews(cached, cat);
     return;
+  }
+
+  // Show loading only if we have nothing cached for this category
+  if (!allNews[cat] || !allNews[cat].length) {
+    el.newsContainer.innerHTML = '<p class="empty-note">Loading news…</p>';
   }
 
   try {
@@ -1280,56 +1330,29 @@ async function loadNews(cat) {
     const res = await fetch(url);
     const json = await res.json();
     if (!json.items || !json.items.length) {
+      // Fall back to stale cache if available
+      const stale = loadJSON(newsCacheKey(cat), null);
+      if (stale?.data?.length) { renderNews(stale.data, cat); return; }
       el.newsContainer.innerHTML = '<p class="empty-note">No news available right now.</p>';
       return;
     }
-    allNews[cat] = json.items.map(item => ({
+    const articles = json.items.map(item => ({
       title: item.title,
       link: item.link,
       pubDate: item.pubDate,
       source: item.author || json.feed?.title || "News",
     }));
-    renderNews(allNews[cat], cat);
+    allNews[cat] = articles;
+    saveNewsCache(cat, articles);
+    renderNews(articles, cat);
   } catch (err) {
     console.error("News load error:", err);
+    // Try stale cache
+    try {
+      const raw = localStorage.getItem(newsCacheKey(cat));
+      if (raw) { renderNews(JSON.parse(raw).data, cat); return; }
+    } catch {}
     el.newsContainer.innerHTML = '<p class="empty-note">Couldn\'t load news — tap refresh to try again.</p>';
-  }
-}
-
-function renderNews(articles, cat) {
-  el.newsContainer.innerHTML = "";
-  articles.slice(0, 15).forEach(article => {
-    const item = document.createElement("a");
-    item.className = "news-item";
-    item.href = article.link;
-    item.target = "_blank";
-    item.rel = "noopener noreferrer";
-
-    const title = document.createElement("div");
-    title.className = "news-item-title";
-    title.textContent = article.title;
-
-    const meta = document.createElement("div");
-    meta.className = "news-item-meta";
-
-    const source = document.createElement("span");
-    source.className = "news-item-source";
-    source.textContent = article.source;
-
-    const badge = document.createElement("span");
-    badge.className = "news-item-cat";
-    badge.textContent = CAT_LABELS[cat] || "News";
-
-    const time = document.createElement("span");
-    time.textContent = formatNewsTime(article.pubDate);
-
-    meta.append(source, badge, time);
-    item.append(title, meta);
-    el.newsContainer.appendChild(item);
-  });
-
-  if (!articles.length) {
-    el.newsContainer.innerHTML = '<p class="empty-note">No news available right now.</p>';
   }
 }
 
