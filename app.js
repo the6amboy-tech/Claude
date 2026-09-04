@@ -1574,6 +1574,31 @@ function activateCustomNav(button) {
   });
 }
 
+function renderArtistsDirectory() {
+  listSongs = [];
+  el.listTitle.textContent = "Artists";
+  if (el.contentTitle) el.contentTitle.textContent = "Artists";
+  el.results.innerHTML = "";
+  const grid = document.createElement("div");
+  grid.className = "artist-grid";
+  FAMOUS_ARTISTS.forEach((artist, index) => {
+    const card = document.createElement("button");
+    card.className = "artist-card";
+    card.style.animationDelay = `${Math.min(index * 32, 240)}ms`;
+    card.type = "button";
+    card.innerHTML = '<span class="artist-card-art" aria-hidden="true"></span><span class="artist-card-copy"><strong></strong><small>Top songs</small></span><span class="artist-card-arrow" aria-hidden="true">›</span>';
+    card.querySelector("strong").textContent = artist;
+    card.setAttribute("aria-label", `Open top songs by ${artist}`);
+    card.addEventListener("click", async () => {
+      card.classList.add("is-loading");
+      await runSearch(`${artist} top songs`, `${artist} · Top songs`);
+      activateCustomNav(el.sideArtists);
+    });
+    grid.appendChild(card);
+  });
+  el.results.appendChild(grid);
+}
+
 el.sideNew?.addEventListener("click", async () => {
   await runSearch(`${el.langSelect.value || "global"} new music 2026`, "New");
   activateCustomNav(el.sideNew);
@@ -1586,25 +1611,8 @@ el.sideRecents?.addEventListener("click", () => {
 });
 el.sideArtists?.addEventListener("click", async () => {
   activateCustomNav(el.sideArtists);
-  renderList([], "Famous artists");
+  renderArtistsDirectory();
   showView("list");
-  el.results.innerHTML = '<p class="loading-note">Finding the world’s most-played artists…</p>';
-  const batches = await Promise.allSettled(
-    FAMOUS_ARTISTS.map((artist) => searchSongs(`${artist} top songs`, 3, API_TTL_LONG))
-  );
-  const songs = [];
-  const seen = new Set();
-  batches.forEach((batch) => {
-    if (batch.status !== "fulfilled") return;
-    batch.value.forEach((song) => {
-      if (!song?.id || seen.has(song.id)) return;
-      seen.add(song.id);
-      songs.push(song);
-    });
-  });
-  renderList(songs.length ? songs : librarySongs(), "Famous artists · top songs");
-  showView("list");
-  activateCustomNav(el.sideArtists);
 });
 el.sideAlbums?.addEventListener("click", () => {
   const songs = librarySongs().sort((a, b) => (a.album || "").localeCompare(b.album || ""));
