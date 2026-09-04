@@ -172,6 +172,8 @@ const el = {
   ltParticipantsList: $("lt-participants-list"),
   ltEmptyMsg: $("lt-empty-msg"),
   btnLyrics: $("btn-lyrics"),
+  lyricsTranslate: $("lyrics-translate"),
+  lyricsFocus: $("lyrics-focus"),
   lyricsPanel: $("lyrics-panel"),
   lyricsClose: $("lyrics-close"),
   lyricsMeta: $("lyrics-meta"),
@@ -1501,6 +1503,15 @@ function setLyricsOpen(open) {
 
 el.btnLyrics.addEventListener("click", () => setLyricsOpen(!lyricsOpen));
 el.lyricsClose.addEventListener("click", () => setLyricsOpen(false));
+el.lyricsTranslate?.addEventListener("click", () => {
+  const song = queue[currentIndex];
+  toast(song?.language ? `Lyrics shown in ${song.language}` : "Lyrics shown in the original language");
+});
+el.lyricsFocus?.addEventListener("click", () => {
+  const focused = document.body.classList.toggle("lyrics-focus-mode");
+  el.lyricsFocus.setAttribute("aria-pressed", focused ? "true" : "false");
+  toast(focused ? "Focus mode on" : "Focus mode off");
+});
 
 /* ---------- Playlist dialog ---------- */
 
