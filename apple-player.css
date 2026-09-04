@@ -1149,7 +1149,7 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
   body.np-open.lyrics-visible .np-controls { opacity: 1; pointer-events: auto; transform: none; transition: opacity 220ms ease, transform 360ms var(--ease-spring); }
   body.np-open.lyrics-visible .np-flow { display: none; }
   body.np-open.lyrics-visible .np-details { padding-top: .35rem; }
-  body.np-open.lyrics-visible #lyrics-panel:not([hidden]) { inset: 10.5rem 1.05rem 15.5rem; pointer-events: none; }
+  body.np-open.lyrics-visible #lyrics-panel:not([hidden]) { inset: 11.25rem 1.05rem 22.5rem; min-height: 0; overflow: hidden; pointer-events: none; }
   body.np-open.lyrics-visible #lyrics-panel .lyrics-head,
   body.np-open.lyrics-visible #lyrics-panel .lyrics-body { pointer-events: auto; }
   body.np-open.lyrics-visible #lyrics-panel .lyrics-head,
@@ -1158,7 +1158,7 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
   body.np-open #lyrics-panel .lyrics-head .section-head { color: #fff; font-size: 1rem; }
   body.np-open #lyrics-panel #lyrics-close { color: #fff; background: rgba(255,255,255,.12); }
   body.np-open #lyrics-panel .lyrics-meta { position: static; margin: .1rem 0 .35rem; color: rgba(255,255,255,.45); font-size: .72rem; }
-  body.np-open #lyrics-panel .lyrics-body { gap: 1.35rem; padding: 1.15rem .4rem 30%; mask-image: linear-gradient(180deg,transparent,#000 1.6rem,#000 calc(100% - 2rem),transparent); -webkit-mask-image: linear-gradient(180deg,transparent,#000 1.6rem,#000 calc(100% - 2rem),transparent); }
+  body.np-open #lyrics-panel .lyrics-body { min-height: 0; gap: 1.35rem; padding: 1.15rem .4rem 1.5rem; overflow-y: auto; mask-image: linear-gradient(180deg,transparent,#000 1.6rem,#000 calc(100% - 2rem),transparent); -webkit-mask-image: linear-gradient(180deg,transparent,#000 1.6rem,#000 calc(100% - 2rem),transparent); }
   body.np-open #lyrics-panel .lyrics-body { overscroll-behavior: contain; }
   body.np-open #lyrics-panel .lyric-line { font-size: clamp(1.35rem,6.5vw,1.85rem); line-height: 1.22; letter-spacing: -.025em; }
   body.np-open #lyrics-panel .lyric-line.active { transform: translateX(.12rem) scale(1.02); }
