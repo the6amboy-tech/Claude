@@ -833,7 +833,7 @@ function renderList(songs, title) {
     favBtn.dataset.id = song.id;
     favBtn.title = "Favorite";
     favBtn.setAttribute("aria-label", `${isFav(song.id) ? "Remove" : "Add"} ${song.title} ${isFav(song.id) ? "from" : "to"} favorites`);
-    favBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.6-9.5-8.5C.6 9 2.6 5.5 6 5.5c2 0 3.4 1.1 4 2.2.6-1.1 2-2.2 4-2.2 3.4 0 5.4 3.5 3.5 7C19 16.4 12 21 12 21z"/></svg>';
+    favBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>';
     favBtn.addEventListener("click", (e) => { e.stopPropagation(); toggleFav(song); });
 
     const addBtn = document.createElement("button");
