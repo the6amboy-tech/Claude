@@ -102,67 +102,20 @@
   }
   </script>
   <meta name="application-name" content="Asharas" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="apple-player.css" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
 
   <!-- PWA / installable app -->
   <link rel="manifest" href="manifest.webmanifest" />
-  <meta name="theme-color" content="#06080d" />
+  <meta name="theme-color" content="#f5f5f7" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Asharas" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 </head>
 <body>
-  <div class="bg-orb orb-1"></div>
-  <div class="bg-orb orb-2"></div>
-  <div class="bg-orb orb-3"></div>
-
-  <!-- 3D particle-field background (cursor-reactive) -->
-  <canvas id="bg-canvas" aria-hidden="true"></canvas>
-
-  <!-- ======== Welcome ======== -->
-  <div id="welcome">
-    <div class="welcome-inner">
-      <div class="logo-tile glass"><span>A</span></div>
-      <h1 class="brand-name brand-xl">Asharas</h1>
-      <p class="tagline">My <em>Contribution</em> to music</p>
-      <div class="mode-cards">
-        <button class="mode-card glass mode-card--primary" id="card-download">
-          <span class="mode-badge">Recommended</span>
-          <span class="mode-emoji">📥</span>
-          <span class="mode-title">Download Asharas</span>
-          <span class="mode-desc">Install on your device for the best app experience — no browser needed.</span>
-        </button>
-        <button class="mode-card glass mode-card--secondary" id="card-browser">
-          <span class="mode-emoji">🌐</span>
-          <span class="mode-title">Continue in Browser</span>
-          <span class="mode-desc">Use Asharas directly in your browser tab.</span>
-        </button>
-      </div>
-      <p class="key-hints"><kbd>Space</kbd> play · <kbd>N</kbd> next · <kbd>←</kbd><kbd>→</kbd> seek</p>
-    </div>
-  </div>
-
-  <header class="mac-topbar" aria-label="Application controls">
-    <div class="traffic-lights" aria-hidden="true">
-      <span class="traffic-light traffic-light--close"></span>
-      <span class="traffic-light traffic-light--minimize"></span>
-      <span class="traffic-light traffic-light--maximize"></span>
-    </div>
-    <span class="mac-topbar-title">Asharas</span>
-    <div class="mac-status" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12.5a10 10 0 0 1 14 0"/><path d="M8 15.5a6 6 0 0 1 8 0"/><path d="M11 18.5a2 2 0 0 1 2 0"/></svg>
-      <span class="mac-battery"><span></span></span>
-    </div>
-  </header>
-
   <!-- ======== App shell ======== -->
   <div class="shell">
     <aside class="sidebar glass">
@@ -191,7 +144,19 @@
         <span class="nav-section-label">Library</span>
         <button class="nav-btn" id="side-recents">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l-3 2"/></svg>
-          Recently Played
+          Recently Added
+        </button>
+        <button class="nav-btn desktop-library-link" id="side-artists">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg>
+          Artists
+        </button>
+        <button class="nav-btn desktop-library-link" id="side-albums">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M7 2h10"/><circle cx="12" cy="12.5" r="3"/></svg>
+          Albums
+        </button>
+        <button class="nav-btn desktop-library-link" id="side-songs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l10-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg>
+          Songs
         </button>
         <button class="nav-btn" data-nav="queue">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15V6"/><path d="M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path d="M12 12H3"/><path d="M16 6H3"/><path d="M12 18H3"/></svg>
@@ -201,7 +166,7 @@
         <span class="nav-section-label">Playlists</span>
         <button class="nav-btn" data-nav="playlists">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5h4v4H5zM15 5h4v4h-4zM5 15h4v4H5zM15 15h4v4h-4z"/></svg>
-          All Playlists
+          <span class="nav-label-desktop">All Playlists</span><span class="nav-label-mobile">Library</span>
         </button>
         <button class="nav-btn" data-nav="favorites">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m12 7 1.5 3 3.5.5-2.5 2.4.6 3.5-3.1-1.7-3.1 1.7.6-3.5L7 10.5l3.5-.5z"/></svg>
@@ -215,6 +180,13 @@
     </aside>
 
     <main class="app">
+      <header class="content-header">
+        <div>
+          <span class="content-eyebrow">Listen now</span>
+          <h1 id="content-title">Home</h1>
+        </div>
+        <button class="account-button" id="account-button" aria-label="About Asharas" title="About Asharas">K</button>
+      </header>
       <div class="search-wrap">
         <form class="search-box glass" id="search-form" autocomplete="off">
           <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -226,9 +198,9 @@
         </form>
         <div class="reco-dropdown glass" id="reco" hidden></div>
         <div class="search-filters" role="radiogroup" aria-label="Search mode">
-          <button class="filter-pill active" data-mode="song" role="radio" aria-checked="true">🎵 Song</button>
-          <button class="filter-pill" data-mode="artist" role="radio" aria-checked="false">🎙️ Artist</button>
-          <button class="filter-pill" data-mode="language" role="radio" aria-checked="false">🌐 Language</button>
+          <button class="filter-pill active" data-mode="song" role="radio" aria-checked="true">Songs</button>
+          <button class="filter-pill" data-mode="artist" role="radio" aria-checked="false">Artists</button>
+          <button class="filter-pill" data-mode="language" role="radio" aria-checked="false">Language</button>
         </div>
       </div>
 
@@ -260,19 +232,6 @@
         </div>
         <span class="spacer"></span>
         <label class="lang-wrap glass">
-          <span class="lang-label">Theme</span>
-          <select id="theme-select">
-            <option value="aurora">Aurora</option>
-            <option value="royal-sapphire">Royal Sapphire</option>
-            <option value="dark-horizon">Dark Horizon</option>
-            <option value="velvet-moss">Velvet Moss</option>
-            <option value="crimson-eclipse">Crimson Eclipse</option>
-            <option value="neon-wave">Neon Wave</option>
-            <option value="classic-slate">Classic Slate</option>
-            <option value="spotify">Spotify Green</option>
-          </select>
-        </label>
-        <label class="lang-wrap glass">
           <span class="lang-label">Language</span>
           <select id="lang-select">
             <option value="">All</option>
@@ -289,85 +248,67 @@
 
       <!-- ---- Home view ---- -->
       <section id="view-home">
-        <h2 class="section-head"><span class="head-bar"></span>🎵 What are you feeling?</h2>
+        <h2 class="section-head">Browse by mood</h2>
         <div class="mood-grid" id="mood-grid">
-          <button class="mood-card" data-q="hip hop hits" style="--tint: 210"><span class="mood-emoji">🎤</span>Hip Hop</button>
-          <button class="mood-card" data-q="chill lofi songs" style="--tint: 190"><span class="mood-emoji">☁️</span>Chill</button>
-          <button class="mood-card" data-q="party dance hits" style="--tint: 45"><span class="mood-emoji">🎉</span>Party</button>
-          <button class="mood-card" data-q="workout gym motivation songs" style="--tint: 150"><span class="mood-emoji">💪</span>Workout</button>
-          <button class="mood-card" data-q="romantic love songs" style="--tint: 350"><span class="mood-emoji">💞</span>Romance</button>
-          <button class="mood-card" data-q="instrumental focus study" style="--tint: 250"><span class="mood-emoji">🧠</span>Focus</button>
-          <button class="mood-card" data-q="trending hit songs 2026" style="--tint: 25"><span class="mood-emoji">🔥</span>Trending</button>
-          <button class="mood-card" data-q="sad emotional songs" style="--tint: 215"><span class="mood-emoji">🌧️</span>Sad</button>
-        </div>
-
-        <div class="news-card glass">
-          <div class="news-head">
-            <h2 class="section-head"><span class="head-bar"></span>📰 Latest News</h2>
-            <button class="pill-btn ghost" id="news-refresh" title="Refresh news">↻</button>
-          </div>
-          <div class="news-pills" id="news-pills">
-            <button class="news-pill active" data-cat="top">Top Stories</button>
-            <button class="news-pill" data-cat="india">India</button>
-            <button class="news-pill" data-cat="world">World</button>
-            <button class="news-pill" data-cat="sports">Sports</button>
-            <button class="news-pill" data-cat="business">Business</button>
-            <button class="news-pill" data-cat="tech">Tech</button>
-          </div>
-          <div id="news-container" class="news-container">
-            <p class="empty-note">Loading news…</p>
-          </div>
+          <button class="mood-card" data-q="hip hop hits" style="--tint: 210">Hip Hop</button>
+          <button class="mood-card" data-q="chill lofi songs" style="--tint: 190">Chill</button>
+          <button class="mood-card" data-q="party dance hits" style="--tint: 45">Party</button>
+          <button class="mood-card" data-q="workout gym motivation songs" style="--tint: 150">Workout</button>
+          <button class="mood-card" data-q="romantic love songs" style="--tint: 350">Romance</button>
+          <button class="mood-card" data-q="instrumental focus study" style="--tint: 250">Focus</button>
+          <button class="mood-card" data-q="trending hit songs 2026" style="--tint: 25">Trending</button>
+          <button class="mood-card" data-q="sad emotional songs" style="--tint: 215">Melancholy</button>
         </div>
 
         <section id="recents-section" hidden>
-          <h2 class="section-head"><span class="head-bar"></span>🕘 Recently played</h2>
+          <h2 class="section-head">Recently played</h2>
           <div class="trend-row" id="recents-row"></div>
         </section>
 
         <div class="row-head">
-          <h2 class="section-head"><span class="head-bar"></span>🔥 Trending now</h2>
+          <h2 class="section-head">Trending now</h2>
           <button class="link-btn" id="see-all">See all</button>
         </div>
         <div class="trend-row" id="trending-row"></div>
 
         <div class="row-head">
-          <h2 class="section-head"><span class="head-bar"></span>🪷 Telugu Hits</h2>
+          <h2 class="section-head">Telugu hits</h2>
           <button class="link-btn see-all-lang" data-lang="telugu">See all</button>
         </div>
         <div class="trend-row" id="telugu-row"></div>
 
         <div class="row-head">
-          <h2 class="section-head"><span class="head-bar"></span>🎵 Hindi Hits</h2>
+          <h2 class="section-head">Hindi hits</h2>
           <button class="link-btn see-all-lang" data-lang="hindi">See all</button>
         </div>
         <div class="trend-row" id="hindi-row"></div>
 
         <div class="row-head">
-          <h2 class="section-head"><span class="head-bar"></span>🎤 English Hits</h2>
+          <h2 class="section-head">English hits</h2>
           <button class="link-btn see-all-lang" data-lang="english">See all</button>
         </div>
         <div class="trend-row" id="english-row"></div>
 
         <div class="row-head">
-          <h2 class="section-head"><span class="head-bar"></span>🎬 Tamil Hits</h2>
+          <h2 class="section-head">Tamil hits</h2>
           <button class="link-btn see-all-lang" data-lang="tamil">See all</button>
         </div>
         <div class="trend-row" id="tamil-row"></div>
 
         <div class="row-head">
-          <h2 class="section-head"><span class="head-bar"></span>🎶 Kannada Hits</h2>
+          <h2 class="section-head">Kannada hits</h2>
           <button class="link-btn see-all-lang" data-lang="kannada">See all</button>
         </div>
         <div class="trend-row" id="kannada-row"></div>
 
         <div class="row-head">
-          <h2 class="section-head"><span class="head-bar"></span>🌴 Malayalam Hits</h2>
+          <h2 class="section-head">Malayalam hits</h2>
           <button class="link-btn see-all-lang" data-lang="malayalam">See all</button>
         </div>
         <div class="trend-row" id="malayalam-row"></div>
 
         <div class="row-head">
-          <h2 class="section-head"><span class="head-bar"></span>🎸 Punjabi Hits</h2>
+          <h2 class="section-head">Punjabi hits</h2>
           <button class="link-btn see-all-lang" data-lang="punjabi">See all</button>
         </div>
         <div class="trend-row" id="punjabi-row"></div>
@@ -429,6 +370,11 @@
         <div class="list-head">
           <button class="pill-btn glass" id="back-home-2">← Home</button>
           <h2 class="section-head">Your playlists</h2>
+        </div>
+        <div class="mobile-library-shortcuts" aria-label="Library categories">
+          <button id="mobile-recents">Recently Added <span>›</span></button>
+          <button id="mobile-favorites">Favourite Songs <span>›</span></button>
+          <button id="mobile-songs">Songs <span>›</span></button>
         </div>
         <div class="pl-create glass">
           <input id="pl-make-name" type="text" placeholder="New playlist name…" />
@@ -610,23 +556,13 @@
     <div class="np-backdrop" id="np-backdrop"></div>
     <div class="np-scrim"></div>
     <div class="np-top">
-      <div class="np-window-actions">
-        <button class="np-icon-btn" id="np-close" aria-label="Close full-screen player">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
-        </button>
-        <button class="np-icon-btn" id="np-compact" aria-label="Minimize player">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="12" height="12" rx="2"/><path d="M9 9h11v10a2 2 0 0 1-2 2H9z"/></svg>
-        </button>
-      </div>
-      <span class="np-eyebrow">Asharas · Now Playing</span>
-      <div class="np-system-status">
-        <button class="np-icon-btn" id="np-search" aria-label="Return to search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg>
-        </button>
-        <svg class="np-airplay" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="m8 21 4-4 4 4"/></svg>
-        <input id="np-volume" type="range" min="0" max="1" step="0.01" value="0.9" aria-label="Volume" />
-        <svg class="np-volume-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M11 5 7 9H3v6h4l4 4z"/><path d="M15 9a5 5 0 0 1 0 6M18 6a9 9 0 0 1 0 12"/></svg>
-      </div>
+      <button class="np-icon-btn" id="np-close" aria-label="Close full-screen player">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 9 7 7 7-7"/></svg>
+      </button>
+      <span class="np-eyebrow"><small>Playing from</small><strong>Asharas</strong></span>
+      <button class="np-icon-btn" id="np-more" aria-label="More options">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+      </button>
     </div>
 
     <div class="np-flow" id="np-flow" role="group" aria-label="Album artwork carousel. Swipe to change tracks."></div>
@@ -639,9 +575,6 @@
       <div class="np-track-actions">
         <button class="np-icon-btn" id="np-fav" aria-label="Favorite">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.6-9.5-8.5C.6 9 2.6 5.5 6 5.5c2 0 3.4 1.1 4 2.2.6-1.1 2-2.2 4-2.2 3.4 0 5.4 3.5 3.5 7C19 16.4 12 21 12 21z"/></svg>
-        </button>
-        <button class="np-icon-btn" id="np-more" aria-label="More options">
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
         </button>
       </div>
     </div>

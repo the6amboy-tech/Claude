@@ -1,14 +1,5 @@
 /* ============ Asharas music player ============ */
 const API_BASE = "https://jiosaavn-api-one-rho.vercel.app";
-const NEWS_RSS = "https://api.rss2json.com/v1/api.json?rss_url=";
-const NEWS_FEEDS = {
-  top:     "https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en",
-  world:   "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx1YlY4U0FtVnVHZ0pWVXlnQVAB?hl=en-IN&gl=IN&ceid=IN:en",
-  sports:  "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1ZEdvU0FtVnVHZ0pWVXlnQVAB?hl=en-IN&gl=IN&ceid=IN:en",
-  business:"https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtVnVHZ0pWVXlnQVAB?hl=en-IN&gl=IN&ceid=IN:en",
-  tech:    "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB?hl=en-IN&gl=IN&ceid=IN:en",
-};
-const CAT_LABELS = { top:"Top Stories", world:"World", sports:"Sports", business:"Business", tech:"Tech" };
 
 const prefersReducedMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -88,9 +79,6 @@ const COVER_FALLBACK =
 
 const $ = (id) => document.getElementById(id);
 const el = {
-  welcome: $("welcome"),
-  cardDownload: $("card-download"),
-  cardBrowser: $("card-browser"),
   form: $("search-form"),
   input: $("search-input"),
   viewHome: $("view-home"),
@@ -111,20 +99,24 @@ const el = {
   seeAll: $("see-all"),
   moodGrid: $("mood-grid"),
   langSelect: $("lang-select"),
-  themeSelect: $("theme-select"),
+  contentTitle: $("content-title"),
+  accountButton: $("account-button"),
   searchWrap: document.querySelector(".search-wrap"),
   reco: $("reco"),
   filterPills: [...document.querySelectorAll(".filter-pill")],
   recentsSection: $("recents-section"),
   recentsRow: $("recents-row"),
-  newsContainer: $("news-container"),
-  newsPills: [...document.querySelectorAll(".news-pill")],
-  newsRefresh: $("news-refresh"),
   listenTogether: $("listen-together"),
   navBtns: [...document.querySelectorAll("[data-nav]")],
   sideNew: $("side-new"),
   sideRadio: $("side-radio"),
   sideRecents: $("side-recents"),
+  sideArtists: $("side-artists"),
+  sideAlbums: $("side-albums"),
+  sideSongs: $("side-songs"),
+  mobileRecents: $("mobile-recents"),
+  mobileFavorites: $("mobile-favorites"),
+  mobileSongs: $("mobile-songs"),
   sidebarNowPlaying: $("sidebar-now-playing"),
   sidebarCover: $("sidebar-cover"),
   sidebarTitle: $("sidebar-title"),
@@ -465,14 +457,11 @@ function copyToClipboard(text, label) {
 el.langSelect.value = loadJSON("ash_lang", "telugu");
 if (loadJSON("ash_dim", false)) document.documentElement.classList.add("dim");
 
-// Themes: "aurora" is the original look (no data-theme); others override.
-function applyTheme(name) {
-  if (name === "aurora") document.documentElement.removeAttribute("data-theme");
-  else document.documentElement.setAttribute("data-theme", name);
-  if (el.themeSelect) el.themeSelect.value = name;
-  saveJSON("ash_theme", name);
+// One adaptive light material keeps the interface visually consistent.
+function applyTheme() {
+  document.documentElement.setAttribute("data-theme", "light");
 }
-applyTheme(loadJSON("ash_theme", "aurora"));
+applyTheme();
 
 /* ---------- API helpers ---------- */
 
@@ -693,8 +682,8 @@ async function fetchMoodSongs(dataQ) {
 // Render a mood category into the list view (with spinner + retry).
 async function runMood(dataQ, label) {
   const title = `${label} · ${el.langSelect.value || "All languages"}`;
-  showView("list");
   el.listTitle.textContent = title;
+  showView("list");
   el.results.innerHTML = '<div class="spinner"></div>';
   try {
     const songs = await fetchMoodSongs(dataQ);
@@ -731,6 +720,15 @@ function showView(name) {
     if (active) b.setAttribute("aria-current", "page");
     else b.removeAttribute("aria-current");
   });
+  if (el.contentTitle) {
+    const titles = {
+      home: "Home",
+      list: el.listTitle.textContent || "Music",
+      queue: "Playing Next",
+      playlists: "Library",
+    };
+    el.contentTitle.textContent = titles[name] || "Asharas";
+  }
 }
 
 function toast(msg) {
@@ -788,6 +786,7 @@ function coverImg(song, cls) {
 function renderList(songs, title) {
   listSongs = songs;
   el.listTitle.textContent = title;
+  if (el.contentTitle) el.contentTitle.textContent = title;
   el.results.innerHTML = "";
 
   if (!songs.length) {
@@ -1257,8 +1256,8 @@ function diversifySongs(songs, perAlbum = 3, floor = 8) {
 // If the primary query returns nothing (e.g. a language-scoped query the
 // API has no matches for), automatically retry with fallbackQuery.
 async function runSearch(query, title, fallbackQuery) {
-  showView("list");
   el.listTitle.textContent = title;
+  showView("list");
   el.results.innerHTML = '<div class="spinner"></div>';
   try {
     let songs = await searchSongs(query);
@@ -1359,119 +1358,14 @@ document.querySelectorAll(".see-all-lang").forEach((btn) => {
   });
 });
 
-let currentNewsCat = "top";
-let allNews = {}; // cat -> [{title, link, pubDate, source}]
-const NEWS_TTL = 15 * 60 * 1000; // 15 minutes cache
-
-function newsCacheKey(cat) { return "ashnews:" + cat; }
-
-function loadNewsCache(cat) {
-  try {
-    const raw = localStorage.getItem(newsCacheKey(cat));
-    if (!raw) return null;
-    const { ts, data } = JSON.parse(raw);
-    if (Date.now() - ts > NEWS_TTL) return null;
-    return data;
-  } catch { return null; }
-}
-
-function saveNewsCache(cat, data) {
-  try { localStorage.setItem(newsCacheKey(cat), JSON.stringify({ ts: Date.now(), data })); } catch {}
-}
-
-function renderNews(articles, cat) {
-  if (!el.newsContainer) return;
-  if (!articles || !articles.length) {
-    el.newsContainer.innerHTML = '<p class="empty-note">No news available right now.</p>';
-    return;
-  }
-  // Build HTML string in one shot — much faster than createElement loop
-  let html = "";
-  articles.slice(0, 15).forEach(a => {
-    const t = formatNewsTime(a.pubDate);
-    const label = CAT_LABELS[cat] || "News";
-    html += `<a class="news-item" href="${a.link}" target="_blank" rel="noopener noreferrer">
-      <div class="news-item-title">${escHtml(a.title)}</div>
-      <div class="news-item-meta">
-        <span class="news-item-source">${escHtml(a.source)}</span>
-        <span class="news-item-cat">${label}</span>
-        <span>${t}</span>
-      </div>
-    </a>`;
-  });
-  el.newsContainer.innerHTML = html;
-}
-
-function escHtml(s) {
-  return s ? s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;") : "";
-}
-
-async function loadNews(cat) {
-  if (!el.newsContainer) return;
-
-  // Instant render from localStorage cache (no fetch needed)
-  const cached = loadNewsCache(cat);
-  if (cached) {
-    allNews[cat] = cached;
-    renderNews(cached, cat);
-    return;
-  }
-
-  // Show loading only if we have nothing cached for this category
-  if (!allNews[cat] || !allNews[cat].length) {
-    el.newsContainer.innerHTML = '<p class="empty-note">Loading news…</p>';
-  }
-
-  try {
-    const url = NEWS_RSS + encodeURIComponent(NEWS_FEEDS[cat] || NEWS_FEEDS.top);
-    const res = await fetch(url);
-    const json = await res.json();
-    if (!json.items || !json.items.length) {
-      // Fall back to stale cache if available
-      const stale = loadJSON(newsCacheKey(cat), null);
-      if (stale?.data?.length) { renderNews(stale.data, cat); return; }
-      el.newsContainer.innerHTML = '<p class="empty-note">No news available right now.</p>';
-      return;
-    }
-    const articles = json.items.map(item => ({
-      title: item.title,
-      link: item.link,
-      pubDate: item.pubDate,
-      source: item.author || json.feed?.title || "News",
-    }));
-    allNews[cat] = articles;
-    saveNewsCache(cat, articles);
-    renderNews(articles, cat);
-  } catch (err) {
-    console.error("News load error:", err);
-    // Try stale cache
-    try {
-      const raw = localStorage.getItem(newsCacheKey(cat));
-      if (raw) { renderNews(JSON.parse(raw).data, cat); return; }
-    } catch {}
-    el.newsContainer.innerHTML = '<p class="empty-note">Couldn\'t load news — tap refresh to try again.</p>';
-  }
-}
-
-function formatNewsTime(dateStr) {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
-  const mins = Math.floor((Date.now() - d.getTime()) / 60000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
-
 /* ---------- Synced lyrics (LRCLIB — free, no keys) ---------- */
 
 const LYRICS_API = "https://lrclib.net/api";
 let lyricsLines = [];     // [{ t: seconds, text }]
 let lyricsSongId = null;  // song the panel currently shows
 let lyricsActiveIdx = -1;
-let lyricsOpen = loadJSON("ash_lyrics_open", false);
+// Lyrics open with the immersive player on desktop and remain opt-in on mobile.
+let lyricsOpen = false;
 
 // Strip parentheticals like (From "Movie") that confuse lyrics lookup.
 const cleanTitle = (t) =>
@@ -1638,80 +1532,6 @@ function addToPlaylist(pl, song) {
 
 /* ---------- Events ---------- */
 
-// Welcome screen — always dismisses safely, even if called twice
-function dismissWelcome(then) {
-  if (!el.welcome || !el.welcome.isConnected) {
-    // already gone — just run the callback
-    then?.();
-    return;
-  }
-  const welcome = el.welcome;
-  const finish = () => {
-    if (welcome.isConnected) welcome.remove();
-    then?.();
-  };
-  welcome.classList.add("leave");
-  requestAnimationFrame(() => {
-    const animations = welcome.getAnimations?.() || [];
-    if (!animations.length) return finish();
-    Promise.allSettled(animations.map((animation) => animation.finished)).then(finish);
-  });
-}
-
-// PWA install prompt
-let deferredPrompt = null;
-window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-});
-
-// If already running as installed app (standalone mode), skip welcome entirely
-const isStandalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone;
-if (isStandalone && el.welcome) {
-  el.welcome.remove();
-  el.welcome = null;
-}
-
-// Always set up the button listeners, even if the element gets re‑created
-function setupWelcomeButtons() {
-  const dlBtn = el.cardDownload || document.getElementById("card-download");
-  const brBtn = el.cardBrowser || document.getElementById("card-browser");
-
-  if (dlBtn) {
-    dlBtn.addEventListener("click", async () => {
-      if (deferredPrompt) {
-        // Browser supports PWA install prompt
-        try {
-          deferredPrompt.prompt();
-          const { outcome } = await deferredPrompt.userChoice;
-          deferredPrompt = null;
-          dismissWelcome(outcome === "accepted" ? () => toast("Asharas installed! 🎉") : undefined);
-        } catch {
-          // Prompt failed — fall through to normal dismiss
-          dismissWelcome();
-        }
-      } else {
-        // Fallback: browser doesn't support prompt or it was already dismissed
-        dismissWelcome(() => {
-          toast("Tap ⋮ → 'Add to Home Screen' to install");
-        });
-      }
-    });
-  }
-
-  if (brBtn) {
-    brBtn.addEventListener("click", () => dismissWelcome(() => el.input?.focus()));
-  }
-}
-
-// If welcome is still in the DOM (not standalone), attach button handlers
-if (el.welcome && el.welcome.isConnected) {
-  setupWelcomeButtons();
-} else if (!isStandalone) {
-  // In case welcome exists but wasn't caught above
-  setupWelcomeButtons();
-}
-
 // Navigation
 el.navBtns.forEach((btn) =>
   btn.addEventListener("click", () => {
@@ -1719,6 +1539,7 @@ el.navBtns.forEach((btn) =>
     if (nav === "home") showView("home");
     else if (nav === "search") {
       showView("home");
+      if (el.contentTitle) el.contentTitle.textContent = "Search";
       el.navBtns.forEach((item) => {
         item.classList.toggle("active", item === btn);
         if (item === btn) item.setAttribute("aria-current", "page");
@@ -1735,15 +1556,70 @@ el.navBtns.forEach((btn) =>
 el.backHome.addEventListener("click", () => showView("home"));
 el.backHome2.addEventListener("click", () => showView("home"));
 el.backHome3.addEventListener("click", () => showView("home"));
-el.sideNew?.addEventListener("click", () => {
-  showView("home");
-  requestAnimationFrame(() => el.trendingRow.scrollIntoView({ behavior: "smooth", block: "center" }));
+
+function librarySongs() {
+  const all = [...recents, ...favs, ...playlists.flatMap((playlist) => playlist.songs || [])];
+  return [...new Map(all.filter(Boolean).map((song) => [song.id, song])).values()];
+}
+
+function activateCustomNav(button) {
+  document.querySelectorAll(".nav-btn").forEach((item) => {
+    const active = item === button;
+    item.classList.toggle("active", active);
+    if (active) item.setAttribute("aria-current", "page");
+    else item.removeAttribute("aria-current");
+  });
+}
+
+el.sideNew?.addEventListener("click", async () => {
+  await runSearch(`${el.langSelect.value || "global"} new music 2026`, "New");
+  activateCustomNav(el.sideNew);
 });
-el.sideRadio?.addEventListener("click", () => el.listenTogether.click());
+el.sideRadio?.addEventListener("click", async () => {
+  await runSearch(`${el.langSelect.value || "global"} radio hits`, "Radio");
+  activateCustomNav(el.sideRadio);
+});
 el.sideRecents?.addEventListener("click", () => {
+  activateCustomNav(el.sideRecents);
+  renderList(recents, "Recently Added");
+  showView("list");
+  activateCustomNav(el.sideRecents);
+});
+el.sideArtists?.addEventListener("click", () => {
+  const songs = librarySongs().sort((a, b) => a.artist.localeCompare(b.artist));
+  renderList(songs, "Artists");
+  showView("list");
+  activateCustomNav(el.sideArtists);
+});
+el.sideAlbums?.addEventListener("click", () => {
+  const songs = librarySongs().sort((a, b) => (a.album || "").localeCompare(b.album || ""));
+  renderList(songs, "Albums");
+  showView("list");
+  activateCustomNav(el.sideAlbums);
+});
+el.sideSongs?.addEventListener("click", () => {
+  renderList(librarySongs(), "Songs");
+  showView("list");
+  activateCustomNav(el.sideSongs);
+});
+el.mobileRecents?.addEventListener("click", () => {
+  renderList(recents, "Recently Added");
+  showView("list");
+  activateCustomNav(document.querySelector('[data-nav="playlists"]'));
+});
+el.mobileFavorites?.addEventListener("click", () => {
+  renderList(favs, "Favourite Songs");
+  showView("list");
+  activateCustomNav(document.querySelector('[data-nav="playlists"]'));
+});
+el.mobileSongs?.addEventListener("click", () => {
+  renderList(librarySongs(), "Songs");
+  showView("list");
+  activateCustomNav(document.querySelector('[data-nav="playlists"]'));
+});
+el.accountButton?.addEventListener("click", () => {
   showView("home");
-  requestAnimationFrame(() => (el.recentsSection.hidden ? el.trendingRow : el.recentsSection)
-    .scrollIntoView({ behavior: "smooth", block: "center" }));
+  requestAnimationFrame(() => document.querySelector(".creator-section")?.scrollIntoView({ behavior: "smooth", block: "center" }));
 });
 el.sidebarNowPlaying?.addEventListener("click", openNowPlaying);
 
@@ -1823,9 +1699,6 @@ el.input.addEventListener("input", () => { clearTimeout(recoTimer); recoTimer = 
 el.input.addEventListener("blur", () => setTimeout(hideReco, 150));
 document.addEventListener("click", (e) => { if (!el.searchWrap.contains(e.target)) hideReco(); });
 
-// Theme selector
-el.themeSelect.addEventListener("change", () => applyTheme(el.themeSelect.value));
-
 // Moods
 el.moodGrid.addEventListener("click", (e) => {
   const card = e.target.closest(".mood-card");
@@ -1864,21 +1737,6 @@ el.langSelect.addEventListener("change", () => {
 el.seeAll.addEventListener("click", () => {
   renderList(trendSongs, "Trending now");
   showView("list");
-});
-
-// Fun facts
-// News category pills
-el.newsPills.forEach(pill => {
-  pill.addEventListener("click", () => {
-    el.newsPills.forEach(p => p.classList.remove("active"));
-    pill.classList.add("active");
-    currentNewsCat = pill.dataset.cat;
-    loadNews(currentNewsCat);
-  });
-});
-el.newsRefresh?.addEventListener("click", () => {
-  delete allNews[currentNewsCat];
-  loadNews(currentNewsCat);
 });
 
 // Listen Together — open choice modal
@@ -2102,11 +1960,6 @@ el.seek.addEventListener("change", () => {
 el.volume.addEventListener("input", () => {
   el.audio.volume = Number(el.volume.value);
   paintRange(el.volume);
-  const npVolume = document.getElementById("np-volume");
-  if (npVolume) {
-    npVolume.value = el.volume.value;
-    paintRange(npVolume);
-  }
 });
 
 // Keep the range track's filled portion in sync with its value
@@ -2130,9 +1983,8 @@ document.addEventListener("keydown", (e) => {
 
 /* ---------- 3D tilt (desktop pointers only) ---------- */
 
-const canTilt =
-  matchMedia("(hover: hover) and (pointer: fine)").matches &&
-  !matchMedia("(prefers-reduced-motion: reduce)").matches;
+// The light redesign uses restrained scale/position feedback, not ornamental 3D tilt.
+const canTilt = false;
 
 // Tilts an element toward the cursor by driving the --rx/--ry CSS vars
 // its transform reads from. maxDeg caps the rotation at the edges.
@@ -2331,25 +2183,15 @@ window.addEventListener("unhandledrejection", (e) => {
 el.audio.volume = Number(el.volume.value);
 paintRange(el.volume);
 paintRange(el.seek);
-if (lyricsOpen) setLyricsOpen(true); // restore panel from last visit
 renderRecents();
-loadNews("top");
 loadTrending();
 loadAllLangSections();
-
-// Auto-refresh news every 6 minutes so headlines stay current
-let newsRefreshTimer = setInterval(() => {
-  try { localStorage.removeItem(newsCacheKey(currentNewsCat)); } catch {}
-  allNews[currentNewsCat] = null;
-  loadNews(currentNewsCat);
-}, 360000);
 
 // Deep links: ?session=<CODE> auto-joins a session; ?q=&song= shares a song
 (async () => {
   const params = new URLSearchParams(location.search);
   const session = (params.get("session") || "").trim();
   if (/^\d{4}$/.test(session)) {
-    if (el.welcome) dismissWelcome();
     startSession(false, session);
   }
   const q = params.get("q");
@@ -2384,9 +2226,6 @@ const np = {
   repeat: document.getElementById("np-repeat"),
   fav: document.getElementById("np-fav"),
   more: document.getElementById("np-more"),
-  compact: document.getElementById("np-compact"),
-  search: document.getElementById("np-search"),
-  volume: document.getElementById("np-volume"),
   lyricsToggle: document.getElementById("np-lyrics-toggle"),
   queueToggle: document.getElementById("np-queue-toggle"),
   close: document.getElementById("np-close"),
@@ -2511,8 +2350,6 @@ function syncNowPlaying() {
   np.artist.textContent = song.artist;
   np.backdrop.style.backgroundImage = `url("${(song.cover || COVER_FALLBACK).replace(/"/g, "")}")`;
   np.fav.classList.toggle("lit", isFav(song.id));
-  np.volume.value = el.audio.volume;
-  paintRange(np.volume);
   if (!np.root.hidden) { buildNPFlow(); npSyncPlayState(); npSyncSeek(); }
 }
 
@@ -2603,18 +2440,6 @@ np.fav.addEventListener("click", () => {
   if (s) np.fav.classList.toggle("lit", isFav(s.id));
 });
 np.close.addEventListener("click", () => closeNowPlaying());
-np.compact.addEventListener("click", () => closeNowPlaying());
-np.search.addEventListener("click", () => {
-  closeNowPlaying();
-  showView("home");
-  requestAnimationFrame(() => el.input.focus({ preventScroll: true }));
-});
-np.volume.addEventListener("input", () => {
-  el.audio.volume = Number(np.volume.value);
-  el.volume.value = np.volume.value;
-  paintRange(np.volume);
-  paintRange(el.volume);
-});
 np.lyricsToggle.addEventListener("click", () => setLyricsOpen(!lyricsOpen));
 np.queueToggle.addEventListener("click", () => {
   renderQueue();
