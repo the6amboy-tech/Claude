@@ -122,6 +122,13 @@ const el = {
   newsRefresh: $("news-refresh"),
   listenTogether: $("listen-together"),
   navBtns: [...document.querySelectorAll("[data-nav]")],
+  sideNew: $("side-new"),
+  sideRadio: $("side-radio"),
+  sideRecents: $("side-recents"),
+  sidebarNowPlaying: $("sidebar-now-playing"),
+  sidebarCover: $("sidebar-cover"),
+  sidebarTitle: $("sidebar-title"),
+  sidebarArtist: $("sidebar-artist"),
   player: $("player"),
   audio: $("audio"),
   cover: $("player-cover"),
@@ -1102,6 +1109,12 @@ function playIndex(i) {
   el.cover.onerror = () => { el.cover.onerror = null; el.cover.src = COVER_FALLBACK; };
   el.title.textContent = song.title;
   el.artist.textContent = song.artist;
+  if (el.sidebarNowPlaying) {
+    el.sidebarNowPlaying.hidden = false;
+    el.sidebarCover.src = song.cover || COVER_FALLBACK;
+    el.sidebarTitle.textContent = song.title;
+    el.sidebarArtist.textContent = song.artist;
+  }
   document.title = `${song.title} · Asharas`;
 
   el.player.classList.add("visible");
@@ -1570,7 +1583,7 @@ function syncLyrics(cur) {
     node.classList.add("active");
     el.lyricsBody.scrollTo({
       top: node.offsetTop - el.lyricsBody.clientHeight / 2 + node.clientHeight / 2,
-      behavior: "smooth",
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
     });
   }
 }
@@ -1580,6 +1593,9 @@ function setLyricsOpen(open) {
   saveJSON("ash_lyrics_open", open);
   el.lyricsPanel.hidden = !open;
   el.btnLyrics.classList.toggle("lit", open);
+  const npLyricsToggle = document.getElementById("np-lyrics-toggle");
+  npLyricsToggle?.classList.toggle("active", open);
+  npLyricsToggle?.setAttribute("aria-pressed", open ? "true" : "false");
   document.body.classList.toggle("lyrics-visible", open);
   const song = queue[currentIndex];
   if (open && song && song.id !== lyricsSongId) loadLyricsFor(song);
@@ -1701,7 +1717,16 @@ el.navBtns.forEach((btn) =>
   btn.addEventListener("click", () => {
     const nav = btn.dataset.nav;
     if (nav === "home") showView("home");
-    else if (nav === "search") { showView("home"); el.input.focus(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+    else if (nav === "search") {
+      showView("home");
+      el.navBtns.forEach((item) => {
+        item.classList.toggle("active", item === btn);
+        if (item === btn) item.setAttribute("aria-current", "page");
+        else item.removeAttribute("aria-current");
+      });
+      el.input.focus();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
     else if (nav === "favorites") { activeMoodQuery = null; activeMoodLabel = null; activeSearchQuery = null; renderList(favs, "Favorites"); showView("list"); }
     else if (nav === "queue") { renderQueue(); showView("queue"); }
     else if (nav === "playlists") { activeMoodQuery = null; activeMoodLabel = null; activeSearchQuery = null; renderPlaylists(); showView("playlists"); }
@@ -1710,6 +1735,17 @@ el.navBtns.forEach((btn) =>
 el.backHome.addEventListener("click", () => showView("home"));
 el.backHome2.addEventListener("click", () => showView("home"));
 el.backHome3.addEventListener("click", () => showView("home"));
+el.sideNew?.addEventListener("click", () => {
+  showView("home");
+  requestAnimationFrame(() => el.trendingRow.scrollIntoView({ behavior: "smooth", block: "center" }));
+});
+el.sideRadio?.addEventListener("click", () => el.listenTogether.click());
+el.sideRecents?.addEventListener("click", () => {
+  showView("home");
+  requestAnimationFrame(() => (el.recentsSection.hidden ? el.trendingRow : el.recentsSection)
+    .scrollIntoView({ behavior: "smooth", block: "center" }));
+});
+el.sidebarNowPlaying?.addEventListener("click", openNowPlaying);
 
 // Search matrix — mode shapes the query. Song/Artist search exactly what was
 // typed (a forced language prefix often returns nothing); the Language pill
@@ -2066,6 +2102,11 @@ el.seek.addEventListener("change", () => {
 el.volume.addEventListener("input", () => {
   el.audio.volume = Number(el.volume.value);
   paintRange(el.volume);
+  const npVolume = document.getElementById("np-volume");
+  if (npVolume) {
+    npVolume.value = el.volume.value;
+    paintRange(npVolume);
+  }
 });
 
 // Keep the range track's filled portion in sync with its value
@@ -2141,6 +2182,7 @@ if (canTilt) {
 (() => {
   const canvas = document.getElementById("bg-canvas");
   if (!canvas) return;
+  if (getComputedStyle(canvas).display === "none") return;
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const ctx = canvas.getContext("2d");
   const DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -2341,6 +2383,12 @@ const np = {
   shuffle: document.getElementById("np-shuffle"),
   repeat: document.getElementById("np-repeat"),
   fav: document.getElementById("np-fav"),
+  more: document.getElementById("np-more"),
+  compact: document.getElementById("np-compact"),
+  search: document.getElementById("np-search"),
+  volume: document.getElementById("np-volume"),
+  lyricsToggle: document.getElementById("np-lyrics-toggle"),
+  queueToggle: document.getElementById("np-queue-toggle"),
   close: document.getElementById("np-close"),
 };
 const NP_RANGE = 3;
@@ -2353,6 +2401,7 @@ let npSheetY = 0;
 let npSheetAnimation = null;
 let npSuppressClickUntil = 0;
 let npPreviousFocus = null;
+let npOpenedLyrics = false;
 
 function npList() {
   const cur = queue[currentIndex];
@@ -2462,6 +2511,8 @@ function syncNowPlaying() {
   np.artist.textContent = song.artist;
   np.backdrop.style.backgroundImage = `url("${(song.cover || COVER_FALLBACK).replace(/"/g, "")}")`;
   np.fav.classList.toggle("lit", isFav(song.id));
+  np.volume.value = el.audio.volume;
+  paintRange(np.volume);
   if (!np.root.hidden) { buildNPFlow(); npSyncPlayState(); npSyncSeek(); }
 }
 
@@ -2471,8 +2522,13 @@ function openNowPlaying() {
   npPreviousFocus = document.activeElement;
   np.root.hidden = false;
   np.root.setAttribute("aria-hidden", "false");
+  document.body.classList.add("np-open");
   document.body.style.overflow = "hidden";
   syncNowPlaying(); buildNPFlow(); npSyncPlayState(); npSyncSeek();
+  if (!npMobile() && !lyricsOpen) {
+    npOpenedLyrics = true;
+    setLyricsOpen(true);
+  }
   requestAnimationFrame(() => np.close.focus({ preventScroll: true }));
   if (prefersReducedMotion()) {
     np.root.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: "ease-out" });
@@ -2500,6 +2556,11 @@ function closeNowPlaying() {
   const finish = () => {
     np.root.hidden = true;
     np.root.setAttribute("aria-hidden", "true");
+    if (npOpenedLyrics) {
+      setLyricsOpen(false);
+      npOpenedLyrics = false;
+    }
+    document.body.classList.remove("np-open");
     document.body.style.overflow = "";
     np.root.style.setProperty("--np-sheet-y", "0px");
     np.root.style.setProperty("--np-sheet-opacity", "1");
@@ -2541,7 +2602,29 @@ np.fav.addEventListener("click", () => {
   const s = queue[currentIndex];
   if (s) np.fav.classList.toggle("lit", isFav(s.id));
 });
-np.close.addEventListener("click", closeNowPlaying);
+np.close.addEventListener("click", () => closeNowPlaying());
+np.compact.addEventListener("click", () => closeNowPlaying());
+np.search.addEventListener("click", () => {
+  closeNowPlaying();
+  showView("home");
+  requestAnimationFrame(() => el.input.focus({ preventScroll: true }));
+});
+np.volume.addEventListener("input", () => {
+  el.audio.volume = Number(np.volume.value);
+  el.volume.value = np.volume.value;
+  paintRange(np.volume);
+  paintRange(el.volume);
+});
+np.lyricsToggle.addEventListener("click", () => setLyricsOpen(!lyricsOpen));
+np.queueToggle.addEventListener("click", () => {
+  renderQueue();
+  showView("queue");
+  closeNowPlaying();
+});
+np.more.addEventListener("click", () => {
+  const song = queue[currentIndex];
+  if (song) openAddDialog(song);
+});
 np.root.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     event.preventDefault();
@@ -2551,9 +2634,9 @@ np.root.addEventListener("keydown", (event) => {
 np.seek.addEventListener("input", () => { npSeeking = true; np.cur.textContent = formatTime(Number(np.seek.value)); paintRange(np.seek); });
 np.seek.addEventListener("change", () => { el.audio.currentTime = Number(np.seek.value); npSeeking = false; });
 
-// Open by tapping the player bar on mobile
+// Open the immersive player from the compact player on every viewport.
 const playerTrackEl = document.querySelector(".player-track");
-if (playerTrackEl) playerTrackEl.addEventListener("click", () => { if (npMobile()) openNowPlaying(); });
+if (playerTrackEl) playerTrackEl.addEventListener("click", openNowPlaying);
 
 // Coverflow drag: 1:1 pointer tracking, rubber-banded edges, momentum
 // projection and velocity handoff into an interruptible spring.
@@ -2627,9 +2710,9 @@ function finishNPDrag(e, cancelled = false) {
 np.flow.addEventListener("pointerup", (e) => finishNPDrag(e));
 np.flow.addEventListener("pointercancel", (e) => finishNPDrag(e, true));
 
-// Keep in sync with playback + collapse if the viewport grows to desktop
+// Keep the presentation in sync across viewport changes.
 el.audio.addEventListener("play", npSyncPlayState);
 el.audio.addEventListener("pause", npSyncPlayState);
 el.audio.addEventListener("timeupdate", () => { if (!np.root.hidden) npSyncSeek(); });
 el.audio.addEventListener("loadedmetadata", () => { if (!np.root.hidden) npSyncSeek(); });
-window.addEventListener("resize", () => { if (!np.root.hidden && !npMobile()) closeNowPlaying(); });
+window.addEventListener("resize", () => { if (!np.root.hidden) npRenderPositions(); });
