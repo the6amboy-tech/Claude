@@ -1146,10 +1146,13 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
   body.np-open.lyrics-visible .np-details,
   body.np-open.lyrics-visible .np-seek-row,
   body.np-open.lyrics-visible .np-controls { opacity: 1; pointer-events: auto; transform: none; transition: opacity 220ms ease, transform 360ms var(--ease-spring); }
-  body.np-open.lyrics-visible .np-flow { flex: 0 0 14.5rem; }
-  body.np-open.lyrics-visible #lyrics-panel:not([hidden]) { inset: 17rem 1.05rem 15.5rem; pointer-events: none; }
+  body.np-open.lyrics-visible .np-flow { display: none; }
+  body.np-open.lyrics-visible .np-details { padding-top: .35rem; }
+  body.np-open.lyrics-visible #lyrics-panel:not([hidden]) { inset: 10.5rem 1.05rem 15.5rem; pointer-events: none; }
   body.np-open.lyrics-visible #lyrics-panel .lyrics-head,
   body.np-open.lyrics-visible #lyrics-panel .lyrics-body { pointer-events: auto; }
+  body.np-open.lyrics-visible #lyrics-panel .lyrics-head,
+  body.np-open.lyrics-visible #lyrics-panel .lyrics-meta { display: none; }
   body.np-open #lyrics-panel .lyrics-head { display: flex; flex: 0 0 auto; }
   body.np-open #lyrics-panel .lyrics-head .section-head { color: #fff; font-size: 1rem; }
   body.np-open #lyrics-panel #lyrics-close { color: #fff; background: rgba(255,255,255,.12); }
