@@ -536,9 +536,15 @@ select:focus-visible {
 .artist-card { position: relative; min-height: 5.8rem; display: flex; align-items: center; gap: .85rem; padding: .78rem .9rem; border: 1px solid rgba(255,255,255,.72); border-radius: 1rem; color: #1d1d1f; background: rgba(255,255,255,.48); box-shadow: 0 10px 30px rgba(56,60,91,.08), inset 0 1px rgba(255,255,255,.8); text-align: left; cursor: pointer; animation: card-in 520ms var(--ease-spring) both; transition: transform 360ms var(--ease-spring), background 180ms ease, box-shadow 180ms ease; }
 .artist-card:hover { transform: translateY(-3px) scale(1.01); background: rgba(255,255,255,.72); box-shadow: 0 16px 34px rgba(56,60,91,.13); }
 .artist-card:active { transform: scale(.98); }
-.artist-card-art { width: 3.25rem; height: 3.25rem; flex: 0 0 auto; border-radius: 50%; background: linear-gradient(145deg, #ff9eac, #fa2d48 58%, #c21838); box-shadow: inset 0 1px rgba(255,255,255,.6), 0 8px 18px rgba(250,45,72,.22); }
+.artist-card-art { position: relative; width: 3.55rem; height: 3.55rem; flex: 0 0 auto; overflow: hidden; border: 1px solid rgba(255,255,255,.78); border-radius: 50%; background: linear-gradient(145deg, #ff9eac, #fa2d48 58%, #c21838); box-shadow: inset 0 1px rgba(255,255,255,.6), 0 8px 18px rgba(250,45,72,.22); }
 .artist-card:nth-child(3n) .artist-card-art { background: linear-gradient(145deg, #c5d8ff, #6d8de8 58%, #4854aa); }
 .artist-card:nth-child(3n+1) .artist-card-art { background: linear-gradient(145deg, #ffdca8, #ef8f72 58%, #a7444b); }
+.artist-card-art::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 28%, rgba(255,255,255,.5) 46%, transparent 64%); transform: translateX(-110%); animation: artist-shimmer 1.45s ease-in-out infinite; }
+.artist-card-art img { position: relative; z-index: 1; width: 100%; height: 100%; display: block; object-fit: cover; opacity: 0; transform: scale(1.08); transition: opacity 280ms ease, transform 520ms var(--ease-spring); }
+.artist-card.has-portrait .artist-card-art::after { display: none; }
+.artist-card.has-portrait .artist-card-art img { opacity: 1; transform: scale(1); }
+.artist-card:hover .artist-card-art img { transform: scale(1.055); }
+@keyframes artist-shimmer { 60%,100% { transform: translateX(110%); } }
 .artist-card-copy { min-width: 0; display: flex; flex-direction: column; gap: .2rem; }
 .artist-card-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .98rem; font-weight: 650; }
 .artist-card-copy small { color: #77777f; font-size: .76rem; }

@@ -210,7 +210,12 @@ const FAMOUS_HITS = [
 const FAMOUS_ARTISTS = [
   "Taylor Swift", "The Weeknd", "Billie Eilish", "Ed Sheeran",
   "Ariana Grande", "Drake", "Rihanna", "Bruno Mars", "Adele", "Dua Lipa",
-  "Anirudh Ravichander", "Arijit Singh", "Shreya Ghoshal",
+  "Beyoncé", "Lady Gaga", "Justin Bieber", "Selena Gomez", "Olivia Rodrigo",
+  "Sabrina Carpenter", "Harry Styles", "Post Malone", "SZA", "Kendrick Lamar",
+  "A.R. Rahman", "Anirudh Ravichander", "Arijit Singh", "Shreya Ghoshal",
+  "Sonu Nigam", "Lata Mangeshkar", "Kishore Kumar", "Asha Bhosle", "Sid Sriram",
+  "S. P. Balasubrahmanyam", "Ilaiyaraaja", "Devi Sri Prasad", "Thaman S",
+  "K. S. Chithra", "Pritam", "Amit Trivedi", "Badshah", "Diljit Dosanjh",
 ];
 
 let queue = [];        // songs the player advances through
@@ -610,6 +615,39 @@ async function searchSongs(query, limit = 25, ttl = API_TTL) {
   })();
   apiInflight.set(key, p);
   return p;
+}
+
+async function artistProfile(name) {
+  const key = `artist:${name.trim().toLowerCase()}`;
+  const cached = apiCacheGet(key);
+  if (cached && Date.now() - cached.ts < API_TTL_LONG) return cached.data;
+
+  if (apiInflight.has(key)) return apiInflight.get(key);
+  const request = (async () => {
+    await apiSlot();
+    try {
+      const url = `${API_BASE}/api/search/artists?query=${encodeURIComponent(name)}&limit=5`;
+      const json = await fetchWithRetry(url);
+      const results = json.data?.results || json.results || [];
+      const exact = results.find((artist) =>
+        decodeEntities(artist.name || "").localeCompare(name, undefined, { sensitivity: "base" }) === 0
+      );
+      const match = exact || results[0] || null;
+      const profile = match ? {
+        name: decodeEntities(match.name || name),
+        image: pickImage(match.image),
+      } : null;
+      if (profile?.image) apiCacheSet(key, profile);
+      return profile;
+    } catch {
+      return cached?.data || null;
+    } finally {
+      apiRelease();
+      apiInflight.delete(key);
+    }
+  })();
+  apiInflight.set(key, request);
+  return request;
 }
 
 const langPrefix = () => (el.langSelect.value ? `${el.langSelect.value} ` : "");
@@ -1593,12 +1631,34 @@ function renderArtistsDirectory() {
   el.results.innerHTML = "";
   const grid = document.createElement("div");
   grid.className = "artist-grid";
+  const loadPortrait = async (card, artist) => {
+    if (card.dataset.portraitLoaded) return;
+    card.dataset.portraitLoaded = "true";
+    const image = card.querySelector("img");
+    const profile = await artistProfile(artist);
+    if (!image || !profile?.image || !card.isConnected) return;
+    image.addEventListener("load", () => card.classList.add("has-portrait"), { once: true });
+    image.addEventListener("error", () => image.remove(), { once: true });
+    image.src = profile.image;
+  };
+
+  const portraitObserver = "IntersectionObserver" in window
+    ? new IntersectionObserver((entries, observer) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          observer.unobserve(entry.target);
+          loadPortrait(entry.target, entry.target.dataset.artist);
+        });
+      }, { rootMargin: "320px 0px" })
+    : null;
+
   FAMOUS_ARTISTS.forEach((artist, index) => {
     const card = document.createElement("button");
     card.className = "artist-card";
     card.style.animationDelay = `${Math.min(index * 32, 240)}ms`;
     card.type = "button";
-    card.innerHTML = '<span class="artist-card-art" aria-hidden="true"></span><span class="artist-card-copy"><strong></strong><small>Top songs</small></span><span class="artist-card-arrow" aria-hidden="true">›</span>';
+    card.dataset.artist = artist;
+    card.innerHTML = '<span class="artist-card-art" aria-hidden="true"><img alt="" width="112" height="112" loading="lazy" decoding="async"></span><span class="artist-card-copy"><strong></strong><small>Popular songs</small></span><span class="artist-card-arrow" aria-hidden="true">›</span>';
     card.querySelector("strong").textContent = artist;
     card.setAttribute("aria-label", `Open top songs by ${artist}`);
     card.addEventListener("click", async () => {
@@ -1607,6 +1667,8 @@ function renderArtistsDirectory() {
       activateCustomNav(el.sideArtists);
     });
     grid.appendChild(card);
+    if (portraitObserver) portraitObserver.observe(card);
+    else loadPortrait(card, artist);
   });
   el.results.appendChild(grid);
 }
