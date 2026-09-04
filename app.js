@@ -2248,6 +2248,7 @@ const np = {
   next: document.getElementById("np-next"),
   shuffle: document.getElementById("np-shuffle"),
   repeat: document.getElementById("np-repeat"),
+  volume: document.getElementById("np-volume"),
   fav: document.getElementById("np-fav"),
   more: document.getElementById("np-more"),
   lyricsToggle: document.getElementById("np-lyrics-toggle"),
@@ -2366,6 +2367,7 @@ function npSyncSeek() {
   np.seek.max = el.audio.duration || 0;
   np.seek.value = el.audio.currentTime;
   paintRange(np.seek);
+  if (np.volume) { np.volume.value = el.volume.value; paintRange(np.volume); }
 }
 function syncNowPlaying() {
   const song = queue[currentIndex];
@@ -2482,6 +2484,12 @@ np.root.addEventListener("keydown", (event) => {
 });
 np.seek.addEventListener("input", () => { npSeeking = true; np.cur.textContent = formatTime(Number(np.seek.value)); paintRange(np.seek); });
 np.seek.addEventListener("change", () => { el.audio.currentTime = Number(np.seek.value); npSeeking = false; });
+np.volume?.addEventListener("input", () => {
+  el.volume.value = np.volume.value;
+  el.audio.volume = Number(np.volume.value);
+  paintRange(el.volume);
+  paintRange(np.volume);
+});
 
 // Open the immersive player from the compact player on every viewport.
 const playerTrackEl = document.querySelector(".player-track");
