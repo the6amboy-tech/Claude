@@ -10,6 +10,71 @@ const NEWS_FEEDS = {
 };
 const CAT_LABELS = { top:"Top Stories", world:"World", sports:"Sports", business:"Business", tech:"Tech" };
 
+const prefersReducedMotion = () =>
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* A small, interruptible spring for gesture-driven values. Retargeting cancels
+   the previous frame loop and starts from the live presentation value. */
+function springValue({ from, to, velocity = 0, response = 0.36, damping = 1, update, complete }) {
+  if (prefersReducedMotion()) {
+    update(to);
+    complete?.();
+    return () => {};
+  }
+
+  const omega = (2 * Math.PI) / response;
+  const stiffness = omega * omega;
+  const drag = 2 * damping * omega;
+  let value = from;
+  let speed = velocity;
+  let previous = performance.now();
+  let frame = 0;
+  let cancelled = false;
+
+  const tick = (now) => {
+    if (cancelled) return;
+    const dt = Math.min((now - previous) / 1000, 1 / 30);
+    previous = now;
+    const acceleration = -stiffness * (value - to) - drag * speed;
+    speed += acceleration * dt;
+    value += speed * dt;
+    update(value);
+
+    if (Math.abs(value - to) < 0.25 && Math.abs(speed) < 2) {
+      update(to);
+      complete?.();
+      return;
+    }
+    frame = requestAnimationFrame(tick);
+  };
+
+  frame = requestAnimationFrame(tick);
+  return () => {
+    cancelled = true;
+    cancelAnimationFrame(frame);
+  };
+}
+
+function projectMomentum(velocity, decelerationRate = 0.998) {
+  return (velocity / 1000) * decelerationRate / (1 - decelerationRate);
+}
+
+function rubberband(distance, dimension, constant = 0.55) {
+  return (distance * dimension * constant) /
+    (dimension + constant * Math.abs(distance));
+}
+
+function showModalFrom(dialog, source = document.activeElement) {
+  if (!dialog || dialog.open) return;
+  const rect = source?.getBoundingClientRect?.();
+  if (rect) {
+    const x = rect.left + rect.width / 2 < innerWidth / 2 ? "0%" : "100%";
+    const y = rect.top + rect.height / 2 < innerHeight / 2 ? "0%" : "100%";
+    dialog.style.setProperty("--dialog-origin", `${x} ${y}`);
+  }
+  dialog.showModal();
+}
+
 // Neutral glass-toned placeholder shown when a song has no artwork
 const COVER_FALLBACK =
   "data:image/svg+xml," +
@@ -656,6 +721,8 @@ function showView(name) {
     if (name === "list") active = nav === "home";
     if (name === "queue") active = nav === "queue";
     b.classList.toggle("active", active);
+    if (active) b.setAttribute("aria-current", "page");
+    else b.removeAttribute("aria-current");
   });
 }
 
@@ -691,7 +758,11 @@ function syncFavUI() {
   const song = queue[currentIndex];
   el.btnFav.classList.toggle("lit", !!song && isFav(song.id));
   el.results.querySelectorAll(".row-fav").forEach((btn) => {
-    btn.classList.toggle("lit", isFav(btn.dataset.id));
+    const favorite = isFav(btn.dataset.id);
+    btn.classList.toggle("lit", favorite);
+    const track = btn.closest(".track");
+    const title = track ? listSongs[Number(track.dataset.index)]?.title : "song";
+    btn.setAttribute("aria-label", `${favorite ? "Remove" : "Add"} ${title || "song"} ${favorite ? "from" : "to"} favorites`);
   });
 }
 
@@ -722,8 +793,12 @@ function renderList(songs, title) {
   songs.forEach((song, i) => {
     const li = document.createElement("li");
     li.className = "track";
-    li.style.animationDelay = `${Math.min(i * 45, 450)}ms`;
+    li.style.animationDelay = `${Math.min(i * 24, 168)}ms`;
     li.dataset.index = i;
+
+    const playTrack = document.createElement("button");
+    playTrack.className = "track-main";
+    playTrack.setAttribute("aria-label", `Play ${song.title} by ${song.artist}`);
 
     const info = document.createElement("div");
     info.className = "track-info";
@@ -747,18 +822,21 @@ function renderList(songs, title) {
     favBtn.className = "row-btn row-fav" + (isFav(song.id) ? " lit" : "");
     favBtn.dataset.id = song.id;
     favBtn.title = "Favorite";
+    favBtn.setAttribute("aria-label", `${isFav(song.id) ? "Remove" : "Add"} ${song.title} ${isFav(song.id) ? "from" : "to"} favorites`);
     favBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.6-9.5-8.5C.6 9 2.6 5.5 6 5.5c2 0 3.4 1.1 4 2.2.6-1.1 2-2.2 4-2.2 3.4 0 5.4 3.5 3.5 7C19 16.4 12 21 12 21z"/></svg>';
     favBtn.addEventListener("click", (e) => { e.stopPropagation(); toggleFav(song); });
 
     const addBtn = document.createElement("button");
     addBtn.className = "row-btn";
     addBtn.title = "Add to playlist";
+    addBtn.setAttribute("aria-label", `Add ${song.title} to a playlist`);
     addBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/><path d="M19 15v6"/><path d="M16 18h6"/></svg>';
     addBtn.addEventListener("click", (e) => { e.stopPropagation(); openAddDialog(song); });
 
     const queueBtn = document.createElement("button");
     queueBtn.className = "row-btn";
     queueBtn.title = "Play next";
+    queueBtn.setAttribute("aria-label", `Play ${song.title} next`);
     queueBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>';
     queueBtn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -767,8 +845,12 @@ function renderList(songs, title) {
       updateQueueUI();
     });
 
-    li.append(coverImg(song, "track-cover"), info, eq, dur, favBtn, addBtn, queueBtn);
-    li.addEventListener("click", () => { queue = listSongs; playIndex(i); });
+    playTrack.append(coverImg(song, "track-cover"), info, eq, dur);
+    playTrack.addEventListener("click", () => {
+      queue = listSongs;
+      playIndex(i);
+    });
+    li.append(playTrack, favBtn, addBtn, queueBtn);
     el.results.appendChild(li);
   });
   markActive();
@@ -778,13 +860,14 @@ function renderList(songs, title) {
 function buildTrendCard(song, getList, i) {
   const card = document.createElement("div");
   card.className = "trend-card glass";
-  card.style.animationDelay = `${Math.min(i * 60, 500)}ms`;
+  card.style.animationDelay = `${Math.min(i * 28, 196)}ms`;
 
   const box = document.createElement("div");
   box.className = "trend-cover-box";
   const q = document.createElement("button");
   q.className = "row-btn card-queue";
   q.title = "Add to queue";
+  q.setAttribute("aria-label", `Play ${song.title} next`);
   q.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>';
   q.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -796,6 +879,7 @@ function buildTrendCard(song, getList, i) {
   const play = document.createElement("button");
   play.className = "card-play";
   play.title = "Play";
+  play.setAttribute("aria-label", `Play ${song.title}`);
   play.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
   play.addEventListener("click", (e) => { e.stopPropagation(); queue = getList(); playIndex(i); });
   box.append(coverImg(song, "trend-cover"), q, play);
@@ -1526,7 +1610,7 @@ function openAddDialog(song) {
     el.plList.appendChild(b);
   });
   el.plNewName.value = "";
-  el.plDialog.showModal();
+  showModalFrom(el.plDialog);
 }
 
 function addToPlaylist(pl, song) {
@@ -1545,11 +1629,17 @@ function dismissWelcome(then) {
     then?.();
     return;
   }
-  el.welcome.classList.add("leave");
-  setTimeout(() => {
-    if (el.welcome && el.welcome.isConnected) el.welcome.remove();
+  const welcome = el.welcome;
+  const finish = () => {
+    if (welcome.isConnected) welcome.remove();
     then?.();
-  }, 550);
+  };
+  welcome.classList.add("leave");
+  requestAnimationFrame(() => {
+    const animations = welcome.getAnimations?.() || [];
+    if (!animations.length) return finish();
+    Promise.allSettled(animations.map((animation) => animation.finished)).then(finish);
+  });
 }
 
 // PWA install prompt
@@ -1756,20 +1846,20 @@ el.newsRefresh?.addEventListener("click", () => {
 });
 
 // Listen Together — open choice modal
-el.listenTogether.addEventListener("click", () => el.ltDialog.showModal());
+el.listenTogether.addEventListener("click", (event) => showModalFrom(el.ltDialog, event.currentTarget));
 
 // Choice: Host
 el.ltHost.addEventListener("click", () => {
   el.ltDialog.close();
-  if (startSession(true)) el.ltHostDialog.showModal();
+  if (startSession(true)) showModalFrom(el.ltHostDialog, el.listenTogether);
 });
 
 // Choice: Join
 el.ltJoin.addEventListener("click", () => {
   el.ltDialog.close();
   el.ltCodeInput.value = "";
-  el.ltJoinDialog.showModal();
-  setTimeout(() => el.ltCodeInput.focus(), 100);
+  showModalFrom(el.ltJoinDialog, el.listenTogether);
+  requestAnimationFrame(() => el.ltCodeInput.focus({ preventScroll: true }));
 });
 
 // Cancel choice dialog
@@ -1785,7 +1875,7 @@ el.ltCopyLink.addEventListener("click", () => copyToClipboard(sessionUrl(), "Lin
 el.ltTransferHost.addEventListener("click", () => {
   updateParticipantsUI();
   el.ltHostDialog.close();
-  el.ltTransferDialog.showModal();
+  showModalFrom(el.ltTransferDialog, el.ltTransferHost);
 });
 
 // Host dialog — Leave
@@ -1816,7 +1906,7 @@ el.ltJoinCancel.addEventListener("click", () => el.ltJoinDialog.close());
 // Transfer dialog — Cancel
 el.ltTransferCancel.addEventListener("click", () => {
   el.ltTransferDialog.close();
-  if (sessionCode) el.ltHostDialog.showModal();
+  if (sessionCode) showModalFrom(el.ltHostDialog, el.ltBarTransfer);
 });
 
 // Session bar — Copy Code
@@ -1828,7 +1918,7 @@ el.ltBarCopyLink.addEventListener("click", () => copyToClipboard(sessionUrl(), "
 // Session bar — Transfer Host
 el.ltBarTransfer.addEventListener("click", () => {
   updateParticipantsUI();
-  el.ltTransferDialog.showModal();
+  showModalFrom(el.ltTransferDialog, el.ltBarTransfer);
 });
 
 // Session bar — Leave
@@ -2257,6 +2347,12 @@ const NP_RANGE = 3;
 const npCards = new Map(); // song id -> card element (kept stable so covers glide)
 const npMobile = () => matchMedia("(max-width: 900px)").matches;
 let npSeeking = false;
+let npOffset = 0;
+let npOffsetAnimation = null;
+let npSheetY = 0;
+let npSheetAnimation = null;
+let npSuppressClickUntil = 0;
+let npPreviousFocus = null;
 
 function npList() {
   const cur = queue[currentIndex];
@@ -2265,15 +2361,46 @@ function npList() {
   return { list: [], idx: -1 };
 }
 
-function npPlaceCard(card, d) {
-  const abs = Math.abs(d);
-  const tx = -50 + d * 46;
-  const ry = d === 0 ? 0 : (d < 0 ? 35 : -35);
-  const sc = d === 0 ? 1 : Math.max(0.66, 0.85 - (abs - 1) * 0.08);
-  const tz = d === 0 ? 0 : -50 - (abs - 1) * 45;
+function npCardSpacing() {
+  const center = [...npCards.values()].find((card) => card._d === 0);
+  return Math.max(112, (center?.offsetWidth || 260) * 0.46);
+}
+
+function npPlaceCard(card, d, offset = npOffset) {
+  const effectiveD = d + offset / npCardSpacing();
+  const abs = Math.abs(effectiveD);
+  const tx = -50 + effectiveD * 46;
+  const ry = Math.max(-40, Math.min(40, -effectiveD * 35));
+  const sc = abs < 0.01 ? 1 : Math.max(0.66, 0.85 - Math.max(0, abs - 1) * 0.08);
+  const tz = abs < 0.01 ? 0 : -50 - Math.max(0, abs - 1) * 45;
   card.style.transform = `translate(${tx}%, -50%) translateZ(${tz}px) rotateY(${ry}deg) scale(${sc})`;
   card.style.zIndex = String(50 - abs);
   card.style.opacity = abs > NP_RANGE ? "0" : "1";
+}
+
+function npRenderPositions() {
+  npCards.forEach((card) => npPlaceCard(card, card._d));
+}
+
+function npSettle(offset, velocity = 0, momentum = false) {
+  npOffsetAnimation?.();
+  npOffset = offset;
+  npOffsetAnimation = springValue({
+    from: offset,
+    to: 0,
+    velocity,
+    response: 0.34,
+    damping: momentum ? 0.82 : 1,
+    update(value) {
+      npOffset = value;
+      npRenderPositions();
+    },
+    complete() {
+      npOffset = 0;
+      npOffsetAnimation = null;
+      npRenderPositions();
+    },
+  });
 }
 
 function buildNPFlow() {
@@ -2288,7 +2415,8 @@ function buildNPFlow() {
   for (const [id, info] of needed) {
     let card = npCards.get(id);
     if (!card) {
-      card = document.createElement("div");
+      card = document.createElement("button");
+      card.type = "button";
       card.className = "np-card";
       const img = document.createElement("img");
       img.src = info.song.cover || COVER_FALLBACK;
@@ -2296,6 +2424,7 @@ function buildNPFlow() {
       img.onerror = () => { img.onerror = null; img.src = COVER_FALLBACK; };
       card.appendChild(img);
       card.addEventListener("click", () => {
+        if (performance.now() < npSuppressClickUntil) return;
         if (card._d === 0) el.btnPlay.click();
         else { queue = card._list; playIndex(card._i); }
       });
@@ -2303,9 +2432,14 @@ function buildNPFlow() {
       npCards.set(id, card);
     }
     card._d = info.d; card._i = info.i; card._list = info.list;
+    card.setAttribute("aria-label", info.d === 0
+      ? `${info.song.title} by ${info.song.artist}. Play or pause.`
+      : `Play ${info.song.title} by ${info.song.artist}`);
+    card.tabIndex = Math.abs(info.d) <= 1 ? 0 : -1;
     card.classList.toggle("center", info.d === 0);
-    npPlaceCard(card, info.d);
+    npPlaceCard(card, info.d, npOffset);
   }
+  npRenderPositions();
 }
 
 function npSyncPlayState() {
@@ -2333,19 +2467,67 @@ function syncNowPlaying() {
 
 function openNowPlaying() {
   if (!queue[currentIndex]) return;
+  npSheetAnimation?.();
+  npPreviousFocus = document.activeElement;
   np.root.hidden = false;
   np.root.setAttribute("aria-hidden", "false");
   document.body.style.overflow = "hidden";
   syncNowPlaying(); buildNPFlow(); npSyncPlayState(); npSyncSeek();
+  requestAnimationFrame(() => np.close.focus({ preventScroll: true }));
+  if (prefersReducedMotion()) {
+    np.root.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: "ease-out" });
+    npSheetY = 0;
+    np.root.style.setProperty("--np-sheet-y", "0px");
+    np.root.style.setProperty("--np-sheet-opacity", "1");
+    return;
+  }
+  npSheetY = 56;
+  np.root.style.setProperty("--np-sheet-y", "56px");
+  npSheetAnimation = springValue({
+    from: 56,
+    to: 0,
+    response: 0.38,
+    damping: 1,
+    update(value) {
+      npSheetY = value;
+      np.root.style.setProperty("--np-sheet-y", `${value}px`);
+      np.root.style.setProperty("--np-sheet-opacity", String(Math.max(0, 1 - value / 96)));
+    },
+    complete() { npSheetAnimation = null; },
+  });
 }
 function closeNowPlaying() {
-  np.root.classList.add("closing");
-  setTimeout(() => {
+  const finish = () => {
     np.root.hidden = true;
-    np.root.classList.remove("closing");
     np.root.setAttribute("aria-hidden", "true");
     document.body.style.overflow = "";
-  }, 340);
+    np.root.style.setProperty("--np-sheet-y", "0px");
+    np.root.style.setProperty("--np-sheet-opacity", "1");
+    npSheetY = 0;
+    npPreviousFocus?.focus?.({ preventScroll: true });
+    npPreviousFocus = null;
+  };
+  npSheetAnimation?.();
+  if (prefersReducedMotion()) {
+    const fade = np.root.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, easing: "ease-out" });
+    fade.addEventListener("finish", finish, { once: true });
+    return;
+  }
+  npSheetAnimation = springValue({
+    from: npSheetY,
+    to: 72,
+    response: 0.3,
+    damping: 1,
+    update(value) {
+      npSheetY = value;
+      np.root.style.setProperty("--np-sheet-y", `${value}px`);
+      np.root.style.setProperty("--np-sheet-opacity", String(Math.max(0, 1 - value / 88)));
+    },
+    complete() {
+      npSheetAnimation = null;
+      finish();
+    },
+  });
 }
 
 // Wire controls (reuse the main player's logic so behaviour stays in sync)
@@ -2360,6 +2542,12 @@ np.fav.addEventListener("click", () => {
   if (s) np.fav.classList.toggle("lit", isFav(s.id));
 });
 np.close.addEventListener("click", closeNowPlaying);
+np.root.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeNowPlaying();
+  }
+});
 np.seek.addEventListener("input", () => { npSeeking = true; np.cur.textContent = formatTime(Number(np.seek.value)); paintRange(np.seek); });
 np.seek.addEventListener("change", () => { el.audio.currentTime = Number(np.seek.value); npSeeking = false; });
 
@@ -2367,15 +2555,77 @@ np.seek.addEventListener("change", () => { el.audio.currentTime = Number(np.seek
 const playerTrackEl = document.querySelector(".player-track");
 if (playerTrackEl) playerTrackEl.addEventListener("click", () => { if (npMobile()) openNowPlaying(); });
 
-// Swipe the coverflow to change tracks
-let npSx = 0, npSwiping = false;
-np.flow.addEventListener("pointerdown", (e) => { npSx = e.clientX; npSwiping = true; });
-np.flow.addEventListener("pointerup", (e) => {
-  if (!npSwiping) return; npSwiping = false;
-  const dx = e.clientX - npSx;
-  if (dx > 45) el.btnPrev.click();
-  else if (dx < -45) el.btnNext.click();
+// Coverflow drag: 1:1 pointer tracking, rubber-banded edges, momentum
+// projection and velocity handoff into an interruptible spring.
+const npGesture = { pointerId: null, startX: 0, baseOffset: 0, dragging: false, samples: [] };
+
+np.flow.addEventListener("pointerdown", (e) => {
+  if (e.button !== 0 && e.pointerType === "mouse") return;
+  npOffsetAnimation?.();
+  npOffsetAnimation = null;
+  npGesture.pointerId = e.pointerId;
+  npGesture.startX = e.clientX;
+  npGesture.baseOffset = npOffset;
+  npGesture.dragging = false;
+  npGesture.samples = [{ x: e.clientX, t: performance.now() }];
+  np.flow.setPointerCapture(e.pointerId);
 });
+
+np.flow.addEventListener("pointermove", (e) => {
+  if (e.pointerId !== npGesture.pointerId) return;
+  const rawDistance = e.clientX - npGesture.startX;
+  if (!npGesture.dragging && Math.abs(rawDistance) < 10) return;
+  npGesture.dragging = true;
+  np.flow.classList.add("is-dragging");
+
+  const { list, idx } = npList();
+  let distance = npGesture.baseOffset + rawDistance;
+  const width = Math.max(np.flow.clientWidth, 1);
+  if ((idx <= 0 && distance > 0) || (idx >= list.length - 1 && distance < 0)) {
+    distance = rubberband(distance, width);
+  }
+  npOffset = distance;
+  npRenderPositions();
+
+  const now = performance.now();
+  npGesture.samples.push({ x: e.clientX, t: now });
+  npGesture.samples = npGesture.samples.filter((sample) => now - sample.t <= 100);
+});
+
+function finishNPDrag(e, cancelled = false) {
+  if (e.pointerId !== npGesture.pointerId) return;
+  const wasDragging = npGesture.dragging;
+  np.flow.classList.remove("is-dragging");
+  npGesture.pointerId = null;
+
+  if (!wasDragging) return;
+  npSuppressClickUntil = performance.now() + 300;
+  const samples = npGesture.samples;
+  const first = samples[0];
+  const last = samples[samples.length - 1];
+  const velocity = !cancelled && last && first && last.t > first.t
+    ? ((last.x - first.x) / (last.t - first.t)) * 1000
+    : 0;
+  const spacing = npCardSpacing();
+  const projected = npOffset + projectMomentum(velocity);
+  const { list, idx } = npList();
+  let direction = 0;
+  if (!cancelled && projected < -spacing * 0.5 && idx < list.length - 1) direction = 1;
+  if (!cancelled && projected > spacing * 0.5 && idx > 0) direction = -1;
+
+  if (direction === 1) {
+    el.btnNext.click();
+    npOffset += spacing;
+  } else if (direction === -1) {
+    el.btnPrev.click();
+    npOffset -= spacing;
+  }
+  npRenderPositions();
+  npSettle(npOffset, velocity, direction !== 0);
+}
+
+np.flow.addEventListener("pointerup", (e) => finishNPDrag(e));
+np.flow.addEventListener("pointercancel", (e) => finishNPDrag(e, true));
 
 // Keep in sync with playback + collapse if the viewport grows to desktop
 el.audio.addEventListener("play", npSyncPlayState);

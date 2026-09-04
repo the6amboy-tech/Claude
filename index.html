@@ -104,7 +104,7 @@
   <meta name="application-name" content="Asharas" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Sora:wght@500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
 
@@ -153,7 +153,7 @@
     <aside class="sidebar glass">
       <div class="side-brand"><span class="brand-name">Asharas</span></div>
       <nav class="side-nav">
-        <button class="nav-btn active" data-nav="home">
+        <button class="nav-btn active" data-nav="home" aria-current="page">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v10h14V10"/></svg>
           Home
         </button>
@@ -475,8 +475,8 @@
   </footer>
 
   <!-- Add-to-playlist dialog -->
-  <dialog id="pl-dialog" class="glass">
-    <h3>Add to playlist</h3>
+  <dialog id="pl-dialog" class="glass" aria-labelledby="pl-dialog-title">
+    <h3 id="pl-dialog-title">Add to playlist</h3>
     <div id="pl-list" class="pl-options"></div>
     <div class="pl-create">
       <input id="pl-new-name" type="text" placeholder="New playlist name…" />
@@ -487,8 +487,8 @@
 
   <!-- ======== Listen Together modals ======== -->
   <!-- Choice modal: Host or Join -->
-  <dialog id="lt-dialog" class="glass lt-dialog">
-    <h3>Listen Together</h3>
+  <dialog id="lt-dialog" class="glass lt-dialog" aria-labelledby="lt-dialog-title">
+    <h3 id="lt-dialog-title">Listen Together</h3>
     <p class="lt-subtitle">Start a shared listening session or join one.</p>
     <div class="lt-options">
       <button class="lt-option glass" id="lt-host">
@@ -506,8 +506,8 @@
   </dialog>
 
   <!-- Host session modal: shows code + actions -->
-  <dialog id="lt-host-dialog" class="glass lt-dialog">
-    <h3>You're hosting</h3>
+  <dialog id="lt-host-dialog" class="glass lt-dialog" aria-labelledby="lt-host-dialog-title">
+    <h3 id="lt-host-dialog-title">You're hosting</h3>
     <div class="lt-code-display">
       <span class="lt-code" id="lt-session-code">----</span>
     </div>
@@ -534,8 +534,8 @@
   </dialog>
 
   <!-- Join session modal: enter code -->
-  <dialog id="lt-join-dialog" class="glass lt-dialog">
-    <h3>Join a Session</h3>
+  <dialog id="lt-join-dialog" class="glass lt-dialog" aria-labelledby="lt-join-dialog-title">
+    <h3 id="lt-join-dialog-title">Join a Session</h3>
     <p class="lt-subtitle">Enter the 4-digit session code.</p>
     <div class="lt-join-input-wrap">
       <input id="lt-code-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="E.G. 1234" autocomplete="off" spellcheck="false" />
@@ -545,8 +545,8 @@
   </dialog>
 
   <!-- Transfer host modal -->
-  <dialog id="lt-transfer-dialog" class="glass lt-dialog">
-    <h3>Transfer Host</h3>
+  <dialog id="lt-transfer-dialog" class="glass lt-dialog" aria-labelledby="lt-transfer-dialog-title">
+    <h3 id="lt-transfer-dialog-title">Transfer Host</h3>
     <p class="lt-subtitle">Choose a listener to become the new host. They will gain full playback control.</p>
     <div id="lt-participants-list" class="lt-participants"></div>
     <p class="lt-empty-participants" id="lt-empty-msg">No other participants in the session yet.</p>
@@ -568,7 +568,7 @@
   </aside>
 
   <!-- Full-screen mobile Now Playing (3D coverflow, Apple glass) -->
-  <div id="now-playing" class="np" hidden aria-hidden="true">
+  <div id="now-playing" class="np" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="np-title">
     <div class="np-backdrop" id="np-backdrop"></div>
     <div class="np-scrim"></div>
     <div class="np-top">
@@ -581,7 +581,7 @@
       </button>
     </div>
 
-    <div class="np-flow" id="np-flow"></div>
+    <div class="np-flow" id="np-flow" role="group" aria-label="Album artwork carousel. Swipe to change tracks."></div>
 
     <div class="np-meta">
       <span class="np-title" id="np-title">—</span>
