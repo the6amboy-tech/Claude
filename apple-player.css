@@ -836,6 +836,11 @@ body.np-open { overflow: hidden; }
 .np-mini svg { width: 1.18rem; height: 1.18rem; }
 .np-ctrl svg { width: 1.85rem; height: 1.85rem; }
 .np-play svg { position: absolute; width: 2.4rem; height: 2.4rem; }
+.np-controls svg,
+.np-play svg,
+.np-icon-btn svg,
+.np-mini svg,
+.np-ctrl svg { display: block; max-width: 2.4rem !important; max-height: 2.4rem !important; }
 .np-play .icon-pause { opacity: 0; }
 .np.playing .np-play .icon-play { opacity: 0; }
 .np.playing .np-play .icon-pause { opacity: 1; }
