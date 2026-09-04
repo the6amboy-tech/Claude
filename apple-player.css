@@ -957,7 +957,6 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
   .sidebar-now-playing,
   #side-recents,
   .desktop-library-link,
-  [data-nav="queue"],
   [data-nav="favorites"] { display: none !important; }
   .side-nav { height: 100%; display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: .1rem; }
   .nav-btn {
@@ -980,7 +979,7 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
   .side-search { order: 5; margin: 0; background: transparent; }
   [data-nav="home"] { order: 1; }
   #side-new { order: 2; }
-  #side-radio { order: 3; }
+  [data-nav="queue"] { order: 3; }
   [data-nav="playlists"] { order: 4; }
   .nav-label-desktop { display: none; }
   .nav-label-mobile { display: inline; }

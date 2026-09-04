@@ -11,7 +11,7 @@ interface, immersive lyrics, and touch-first motion, powered by a custom
 - **Song search** via `GET /api/search/songs?query=…` with animated glass
   result cards (artwork, title, artist, album, duration)
 - **Mood grid** — Hip Hop, Chill, Party, Workout, Romance, Focus, Trending,
-  Sad — combined with a **language selector** (Telugu, Hindi, English, Tamil,
+  Sad — combined with language-aware discovery (Telugu, Hindi, English, Tamil,
   Kannada, Malayalam, Punjabi)
 - **HTML5 audio playback** picking the highest-quality stream from each
   song's `downloadUrl` array (320kbps preferred; handles `url`/`link` and
@@ -21,7 +21,7 @@ interface, immersive lyrics, and touch-first motion, powered by a custom
   (lock-screen keys), and keyboard shortcuts (Space, N, P, ←/→)
 - **Multi-layer search** — Song / Artist / Language filter pills and a live
   "recommended searches" dropdown that updates as you type; the top-right
-  language selector subsets moods, trending and search across the app
+  language-aware defaults keep moods, trending and search relevant across the app
 - **Queue management** — add-to-queue on every track (rows, trending,
   language rows, recently played) plus a dedicated Queue view
 - **Favorites & playlists** stored in localStorage, with add-to-playlist from

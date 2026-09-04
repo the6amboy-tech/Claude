@@ -109,7 +109,6 @@ const el = {
   listenTogether: $("listen-together"),
   navBtns: [...document.querySelectorAll("[data-nav]")],
   sideNew: $("side-new"),
-  sideRadio: $("side-radio"),
   sideRecents: $("side-recents"),
   sideArtists: $("side-artists"),
   sideAlbums: $("side-albums"),
@@ -205,6 +204,10 @@ const FAMOUS_HITS = [
   "Kesariya", "Tum Hi Ho", "Apna Bana Le", "Chaleya", "Naatu Naatu",
   "Butta Bomma", "Samajavaragamana", "Blinding Lights", "Shape of You",
   "Believer", "Perfect Ed Sheeran", "Starboy", "Despacito", "Faded Alan Walker",
+];
+const FAMOUS_ARTISTS = [
+  "Taylor Swift", "The Weeknd", "Billie Eilish", "Ed Sheeran",
+  "Ariana Grande", "Drake", "Rihanna", "Bruno Mars", "Adele", "Dua Lipa",
 ];
 
 let queue = [];        // songs the player advances through
@@ -454,7 +457,7 @@ function copyToClipboard(text, label) {
     .catch(() => toast(text));
 }
 
-el.langSelect.value = loadJSON("ash_lang", "telugu");
+el.langSelect.value = loadJSON("ash_lang", "");
 if (loadJSON("ash_dim", false)) document.documentElement.classList.add("dim");
 
 // One adaptive light material keeps the interface visually consistent.
@@ -1575,19 +1578,31 @@ el.sideNew?.addEventListener("click", async () => {
   await runSearch(`${el.langSelect.value || "global"} new music 2026`, "New");
   activateCustomNav(el.sideNew);
 });
-el.sideRadio?.addEventListener("click", async () => {
-  await runSearch(`${el.langSelect.value || "global"} radio hits`, "Radio");
-  activateCustomNav(el.sideRadio);
-});
 el.sideRecents?.addEventListener("click", () => {
   activateCustomNav(el.sideRecents);
   renderList(recents, "Recently Added");
   showView("list");
   activateCustomNav(el.sideRecents);
 });
-el.sideArtists?.addEventListener("click", () => {
-  const songs = librarySongs().sort((a, b) => a.artist.localeCompare(b.artist));
-  renderList(songs, "Artists");
+el.sideArtists?.addEventListener("click", async () => {
+  activateCustomNav(el.sideArtists);
+  renderList([], "Famous artists");
+  showView("list");
+  el.results.innerHTML = '<p class="loading-note">Finding the world’s most-played artists…</p>';
+  const batches = await Promise.allSettled(
+    FAMOUS_ARTISTS.map((artist) => searchSongs(`${artist} top songs`, 3, API_TTL_LONG))
+  );
+  const songs = [];
+  const seen = new Set();
+  batches.forEach((batch) => {
+    if (batch.status !== "fulfilled") return;
+    batch.value.forEach((song) => {
+      if (!song?.id || seen.has(song.id)) return;
+      seen.add(song.id);
+      songs.push(song);
+    });
+  });
+  renderList(songs.length ? songs : librarySongs(), "Famous artists · top songs");
   showView("list");
   activateCustomNav(el.sideArtists);
 });
