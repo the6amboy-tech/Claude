@@ -208,6 +208,7 @@ const FAMOUS_HITS = [
 const FAMOUS_ARTISTS = [
   "Taylor Swift", "The Weeknd", "Billie Eilish", "Ed Sheeran",
   "Ariana Grande", "Drake", "Rihanna", "Bruno Mars", "Adele", "Dua Lipa",
+  "Anirudh Ravichander", "Arijit Singh", "Shreya Ghoshal",
 ];
 
 let queue = [];        // songs the player advances through
