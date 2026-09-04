@@ -962,18 +962,17 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
 
   .sidebar {
     position: fixed;
-    inset: auto 0 0;
+    inset: auto 1rem 1rem;
     z-index: 90;
-    width: 100%;
-    height: calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px));
+    width: auto;
+    height: calc(4.7rem + env(safe-area-inset-bottom,0px));
     display: block;
-    padding: .34rem .38rem env(safe-area-inset-bottom,0px);
+    padding: .34rem .42rem env(safe-area-inset-bottom,0px);
     overflow: visible;
-    border: 0;
-    border-top: 1px solid rgba(0,0,0,.08);
-    border-radius: 0;
-    background: rgba(249,249,252,.68) !important;
-    box-shadow: 0 -8px 30px rgba(0,0,0,.05);
+    border: 1px solid rgba(255,255,255,.72);
+    border-radius: 1.45rem;
+    background: rgba(255,255,255,.5) !important;
+    box-shadow: 0 14px 38px rgba(52,58,88,.16), inset 0 1px rgba(255,255,255,.8);
     backdrop-filter: blur(36px) saturate(190%);
     -webkit-backdrop-filter: blur(36px) saturate(190%);
   }
@@ -982,30 +981,30 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
   .sidebar-now-playing,
   #side-recents,
   .desktop-library-link,
-  [data-nav="favorites"] { display: none !important; }
-  .side-nav { height: 100%; display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: .1rem; }
+  [data-nav="favorites"],
+  [data-nav="queue"] { display: none !important; }
+  .side-nav { height: 100%; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: .1rem; }
   .nav-btn {
     min-width: 0;
-    min-height: 3.6rem;
+    min-height: 3.8rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
     gap: .2rem;
     padding: .25rem .1rem;
-    border-radius: .7rem;
+    border-radius: 1.05rem;
     color: #77777c;
     font-size: .62rem;
     font-weight: 560;
     text-align: center;
   }
-  .nav-btn svg { width: 1.42rem; height: 1.42rem; color: currentColor; }
+  .nav-btn svg { width: 1.5rem; height: 1.5rem; color: currentColor; }
   .nav-btn:hover { background: transparent; }
-  .nav-btn.active { color: var(--accent); background: transparent; }
-  .side-search { order: 5; margin: 0; background: transparent; }
+  .nav-btn.active { color: var(--accent); background: rgba(255,255,255,.62); box-shadow: 0 5px 16px rgba(64,65,92,.1), inset 0 1px rgba(255,255,255,.8); }
+  .side-search { order: 4; margin: 0; background: transparent; }
   [data-nav="home"] { order: 1; }
   #side-new { order: 2; }
-  [data-nav="queue"] { order: 3; }
-  [data-nav="playlists"] { order: 4; }
+  [data-nav="playlists"] { order: 3; }
   .nav-label-desktop { display: none; }
   .nav-label-mobile { display: inline; }
 
