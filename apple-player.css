@@ -962,14 +962,16 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
   .account-button { width: 2.15rem; height: 2.15rem; }
 
   .sidebar {
-    position: fixed;
-    inset: auto 1rem 1rem;
+    position: fixed !important;
+    inset: auto 1rem max(.7rem, env(safe-area-inset-bottom, 0px));
     z-index: 90;
     width: auto;
     height: calc(4.7rem + env(safe-area-inset-bottom,0px));
     display: block;
     padding: .34rem .42rem env(safe-area-inset-bottom,0px);
     overflow: visible;
+    transform: translateZ(0);
+    will-change: transform;
     border: 1px solid rgba(255,255,255,.72);
     border-radius: 1.45rem;
     background: rgba(255,255,255,.5) !important;
@@ -982,9 +984,8 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
   .sidebar-now-playing,
   #side-recents,
   .desktop-library-link,
-  [data-nav="favorites"],
-  [data-nav="queue"] { display: none !important; }
-  .side-nav { height: 100%; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: .1rem; }
+  [data-nav="favorites"] { display: none !important; }
+  .side-nav { height: 100%; display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: .1rem; }
   .nav-btn {
     min-width: 0;
     min-height: 3.8rem;
@@ -1002,10 +1003,11 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
   .nav-btn svg { width: 1.5rem; height: 1.5rem; color: currentColor; }
   .nav-btn:hover { background: transparent; }
   .nav-btn.active { color: var(--accent); background: rgba(255,255,255,.62); box-shadow: 0 5px 16px rgba(64,65,92,.1), inset 0 1px rgba(255,255,255,.8); }
-  .side-search { order: 4; margin: 0; background: transparent; }
+  .side-search { order: 5; margin: 0; background: transparent; }
   [data-nav="home"] { order: 1; }
   #side-new { order: 2; }
-  [data-nav="playlists"] { order: 3; }
+  [data-nav="queue"] { order: 3; }
+  [data-nav="playlists"] { order: 4; }
   .nav-label-desktop { display: none; }
   .nav-label-mobile { display: inline; }
 
