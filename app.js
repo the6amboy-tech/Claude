@@ -2263,6 +2263,7 @@ const np = {
   fav: document.getElementById("np-fav"),
   more: document.getElementById("np-more"),
   lyricsToggle: document.getElementById("np-lyrics-toggle"),
+  outputToggle: document.getElementById("np-output-toggle"),
   queueToggle: document.getElementById("np-queue-toggle"),
   close: document.getElementById("np-close"),
 };
@@ -2478,6 +2479,13 @@ np.fav.addEventListener("click", () => {
 });
 np.close.addEventListener("click", () => closeNowPlaying());
 np.lyricsToggle.addEventListener("click", () => setLyricsOpen(!lyricsOpen));
+np.outputToggle?.addEventListener("click", () => {
+  if (typeof el.audio.webkitShowPlaybackTargetPicker === "function") {
+    el.audio.webkitShowPlaybackTargetPicker();
+  } else {
+    toast("Choose an audio output from your device controls");
+  }
+});
 np.queueToggle.addEventListener("click", () => {
   renderQueue();
   showView("queue");

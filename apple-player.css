@@ -867,6 +867,7 @@ body.np-open { overflow: hidden; }
 .np-view-toggle button:hover,
 .np-view-toggle button.active { color: #fff; background: rgba(255,255,255,.18); }
 .np-view-toggle svg { width: 1.12rem; height: 1.12rem; }
+.np-output-toggle { display: none !important; }
 
 body.np-open #lyrics-panel:not([hidden]) {
   position: fixed;
@@ -954,7 +955,13 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
     --tabbar-h: 5rem;
   }
 
-  body { background: #fff; }
+  body {
+    background:
+      radial-gradient(28rem 22rem at 85% 2%, rgba(255,198,214,.44), transparent 70%),
+      radial-gradient(26rem 24rem at 5% 38%, rgba(191,220,255,.42), transparent 72%),
+      linear-gradient(160deg, #f8f9fc 0%, #f1f4fa 52%, #fff7f9 100%);
+    background-attachment: fixed;
+  }
   .shell { display: block; padding: 0 0 calc(var(--player-h) + var(--tabbar-h) + 2.4rem); }
   .app { width: 100%; max-width: none; padding: calc(.75rem + env(safe-area-inset-top,0px)) 1rem 2rem; }
 
@@ -971,7 +978,7 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
     position: fixed !important;
     inset: auto 1rem max(.7rem, env(safe-area-inset-bottom, 0px));
     z-index: 90;
-    width: auto;
+    width: calc(100% - 2rem);
     height: calc(4.7rem + env(safe-area-inset-bottom,0px));
     display: block;
     padding: .34rem .42rem env(safe-area-inset-bottom,0px);
@@ -1018,8 +1025,10 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
   .nav-label-mobile { display: inline; }
 
   .app::before { inset: 0 0 var(--tabbar-h) 0; background: linear-gradient(135deg, rgba(255,255,255,.28), rgba(255,255,255,.04)); }
-  .search-wrap { top: 0; margin: 0 -.15rem; padding-top: .5rem; background: linear-gradient(rgba(244,245,249,.84) 78%,rgba(244,245,249,0)); }
-  .search-box { min-height: 2.75rem; border-radius: .72rem; }
+  .search-wrap { top: 0; margin: 0 -.15rem; padding-top: .5rem; background: linear-gradient(rgba(247,248,252,.7) 70%,rgba(247,248,252,0)); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+  .search-box { min-height: 2.75rem; overflow: hidden; border-color: rgba(255,255,255,.78); border-radius: .9rem; background: rgba(255,255,255,.5); box-shadow: 0 10px 30px rgba(70,79,112,.1), inset 0 1px rgba(255,255,255,.86); }
+  .search-box:focus-within { background: rgba(255,255,255,.76); border-color: rgba(250,45,72,.36); box-shadow: 0 0 0 3px rgba(250,45,72,.09), 0 14px 34px rgba(70,79,112,.13); }
+  #search-input { height: 2.1rem; min-height: 0; margin: 0; padding: 0; border: 0; line-height: 1.25rem; vertical-align: middle; appearance: none; -webkit-appearance: none; }
   .search-btn { min-height: 2.05rem; padding-inline: .8rem; }
   .search-filters { overflow-x: auto; scrollbar-width: none; }
   .filter-pill { flex: 0 0 auto; }
@@ -1071,7 +1080,8 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
     bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + .35rem);
     z-index: 88;
     width: auto;
-    min-height: var(--player-h);
+    height: 4.35rem;
+    min-height: 4.35rem;
     display: grid;
     grid-template-columns: minmax(0,1fr) auto auto;
     gap: .5rem;
@@ -1080,6 +1090,7 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
     border-radius: .82rem;
     background: rgba(248,248,250,.88) !important;
     box-shadow: 0 8px 28px rgba(0,0,0,.12);
+    overflow: hidden;
   }
   .player-track { gap: .58rem; }
   .player > .player-track { grid-column: 1; grid-row: 1; }
@@ -1087,6 +1098,7 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
   .track-title { font-size: .8rem; }
   .track-artist { font-size: .69rem; }
   .player-center { display: block; grid-column: 2; grid-row: 1; }
+  .player-center .controls { display: flex; flex-wrap: nowrap; align-items: center; }
   .player-center .controls { gap: .12rem; }
   .player-center #btn-shuffle,
   .player-center #btn-prev,
@@ -1166,6 +1178,7 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
   body.np-open #lyrics-panel #lyrics-close { color: #fff; background: rgba(255,255,255,.12); }
   body.np-open #lyrics-panel .lyrics-meta { position: static; margin: .1rem 0 .35rem; color: rgba(255,255,255,.45); font-size: .72rem; }
   body.np-open #lyrics-panel .lyrics-body { min-height: 0; gap: 1.35rem; padding: 1.15rem .4rem 1.5rem; overflow-y: auto; mask-image: linear-gradient(180deg,transparent,#000 1.6rem,#000 calc(100% - 2rem),transparent); -webkit-mask-image: linear-gradient(180deg,transparent,#000 1.6rem,#000 calc(100% - 2rem),transparent); }
+  body.np-open.lyrics-visible #lyrics-panel .lyrics-body { padding-bottom: 4.2rem; }
   body.np-open #lyrics-panel .lyrics-body { overscroll-behavior: contain; }
   body.np-open #lyrics-panel .lyric-line { font-size: clamp(1.35rem,6.5vw,1.85rem); line-height: 1.22; letter-spacing: -.025em; }
   body.np-open #lyrics-panel .lyric-line.active { transform: translateX(.12rem) scale(1.02); }
@@ -1179,6 +1192,85 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
   .lyrics-action:hover, .lyrics-action[aria-pressed="true"] { color: #fff; background: rgba(255,255,255,.24); }
   body.lyrics-focus-mode .lyric-line:not(.active) { opacity: .16; filter: blur(2px); }
   body.lyrics-focus-mode .lyric-line.active { text-shadow: 0 8px 28px rgba(255,255,255,.18); }
+
+  /* Lyrics mode uses anchored zones so content can never collide with controls. */
+  body.np-open.lyrics-visible .np { display: block; }
+  body.np-open.lyrics-visible .np-top {
+    position: absolute;
+    inset: calc(.7rem + env(safe-area-inset-top,0px)) 1.25rem auto;
+    height: 3.25rem;
+  }
+  body.np-open.lyrics-visible .np-eyebrow { visibility: hidden; }
+  body.np-open.lyrics-visible .np-flow {
+    position: absolute;
+    display: block;
+    top: calc(4.75rem + env(safe-area-inset-top,0px));
+    left: 1.25rem;
+    width: 4.8rem;
+    height: 4.8rem;
+    min-height: 0;
+  }
+  body.np-open.lyrics-visible .np-card { width: 4.8rem; max-width: none; border-radius: .72rem; box-shadow: 0 10px 28px rgba(0,0,0,.28); }
+  body.np-open.lyrics-visible .np-card:not(.center) { display: none; }
+  body.np-open.lyrics-visible .np-details {
+    position: absolute;
+    top: calc(4.75rem + env(safe-area-inset-top,0px));
+    left: 6.75rem;
+    right: 1.25rem;
+    width: auto;
+    height: 4.8rem;
+    padding: 0;
+  }
+  body.np-open.lyrics-visible #lyrics-panel:not([hidden]) {
+    inset: calc(10rem + env(safe-area-inset-top,0px)) 1.25rem calc(24rem + env(safe-area-inset-bottom,0px));
+  }
+  body.np-open.lyrics-visible .np-seek-row {
+    position: absolute;
+    left: 1.25rem;
+    right: 1.25rem;
+    bottom: calc(15.9rem + env(safe-area-inset-bottom,0px));
+    width: auto;
+    margin: 0;
+    max-width: none;
+    justify-self: auto;
+  }
+  body.np-open.lyrics-visible .np-controls {
+    position: absolute;
+    left: 1.25rem;
+    right: 1.25rem;
+    bottom: calc(10.1rem + env(safe-area-inset-bottom,0px));
+    width: auto;
+    max-width: none;
+    align-self: auto;
+    justify-self: auto;
+  }
+  body.np-open.lyrics-visible .np-volume-row {
+    position: absolute;
+    left: 1.25rem;
+    right: 1.25rem;
+    bottom: calc(6.5rem + env(safe-area-inset-bottom,0px));
+    width: auto;
+    margin: 0;
+  }
+  body.np-open.lyrics-visible .np-view-toggle {
+    position: absolute !important;
+    left: 50%;
+    bottom: calc(1rem + env(safe-area-inset-bottom,0px));
+    margin: 0;
+    width: min(19rem, calc(100vw - 3rem));
+    justify-content: space-between;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    transform: translateX(-50%);
+  }
+  body.np-open.lyrics-visible .np-view-toggle button { width: 3rem; height: 3rem; background: transparent; }
+  body.np-open.lyrics-visible .np-view-toggle button.active { background: rgba(255,255,255,.2); box-shadow: inset 0 1px rgba(255,255,255,.12); }
+  body.np-open.lyrics-visible .np-output-toggle { display: grid !important; }
+  body.np-open.lyrics-visible .lyrics-actions { bottom: -3.4rem; }
 }
 
 @media (max-width: 390px) {
