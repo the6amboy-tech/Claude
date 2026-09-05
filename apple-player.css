@@ -736,6 +736,19 @@ dialog input { color: #1d1d1f; background: rgba(118,118,128,.1); border-color: r
   transition: transform 480ms var(--ease-spring), opacity 180ms ease;
 }
 .player.visible { transform: translateY(0); }
+
+/* Keep the empty player out of the mobile and desktop layout until playback
+   sets aria-hidden to false and adds the visible state. */
+.player[aria-hidden="true"] {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+.player[aria-hidden="false"] {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
 .player-track { min-width: 0; cursor: pointer; }
 .cover-wrap { width: 3.45rem; height: 3.45rem; border-radius: .55rem; box-shadow: 0 5px 16px rgba(0,0,0,.14); }
 .cover-sheen { display: none; }
@@ -1215,6 +1228,18 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
     background: rgba(248,248,250,.88) !important;
     box-shadow: 0 8px 28px rgba(0,0,0,.12);
     overflow: hidden;
+  }
+  .player:not(.visible) {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(calc(100% + var(--tabbar-h) + 3rem));
+  }
+  .player.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
   }
   .player .np-volume-row,
   .player .vol-icon,

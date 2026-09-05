@@ -1192,6 +1192,7 @@ function playIndex(i) {
   }
   document.title = `${song.title} · Asharas`;
 
+  el.player.hidden = false;
   el.player.classList.add("visible");
   el.player.setAttribute("aria-hidden", "false");
   markActive();

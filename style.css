@@ -813,6 +813,19 @@ button {
 }
 .player.visible { transform: translate(-50%, 0) perspective(900px) rotateX(0); }
 
+/* The player exists in the markup so its controls can be wired immediately,
+   but it must not occupy or intercept the page until a track is selected. */
+.player[aria-hidden="true"] {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+.player[aria-hidden="false"] {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .player-track { display: flex; align-items: center; gap: 16px; min-width: 0; }
 
 /* Prominent artwork — tilts in 3D under the cursor */
