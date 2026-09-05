@@ -1,10 +1,11 @@
 /* Asharas service worker — offline app shell + safe pass-through.
    Bump CACHE to invalidate old shells on deploy. */
-const CACHE = "asharas-v11";
+const CACHE = "asharas-v12";
 const SHELL = [
   "./", "./index.html", "./style.css", "./apple-player.css", "./app.js", "./manifest.webmanifest",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png",
-  "./icons/apple-touch-icon.png",
+  "./icons/apple-touch-icon.png", "./favicon.svg", "./favicon-48.png", "./favicon-64.png", "./favicon-32.png",
+  "./assets/logos/asharas-mark.svg",
 ];
 
 self.addEventListener("install", (e) => {

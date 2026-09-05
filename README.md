@@ -1,6 +1,10 @@
-# Asharas 🎧
+<p align="center">
+  <img src="assets/logos/asharas-mark.svg" width="96" height="96" alt="Asharas logo" />
+</p>
 
-A responsive, Apple Music-inspired web player with a light adaptive-material
+# Asharas
+
+A responsive, Apple Music-inspired web player with a midnight glass
 interface, immersive lyrics, and touch-first motion, powered by a custom
 [JioSaavn API](https://jiosaavn-api-one-rho.vercel.app). No ads, no logins.
 
@@ -31,7 +35,7 @@ interface, immersive lyrics, and touch-first motion, powered by a custom
 - **Real Listen Together** — the host generates a 4-digit code, friends
   join by code or invite link (`?session=CODE`), and playback stays synced
   across devices over MQTT; the host can transfer the crown to any listener
-- **Apple Music-inspired UI** — a light desktop library sidebar, restrained
+- **Apple Music-inspired UI** — a dark desktop library sidebar, restrained
   translucent navigation materials, precise system typography, and an
   artwork-driven immersive player with large synced lyrics
 - **iPhone-style mobile layout** — five-tab navigation, a compact mini-player,
@@ -52,6 +56,6 @@ python3 -m http.server 8000
 |------|---------|
 | `index.html` | App shell, library views, player, lyrics, and dialogs |
 | `style.css` | Base components and motion primitives |
-| `apple-player.css` | Adaptive light desktop/mobile presentation layer |
+| `apple-player.css` | Adaptive midnight-glass desktop/mobile presentation layer |
 | `app.js` | API calls, views, queue/shuffle/repeat, favorites, playlists |
 | `.github/workflows/deploy-pages.yml` | Auto-deploy to GitHub Pages on push |
