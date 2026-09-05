@@ -98,6 +98,21 @@ const el = {
   punjabiRow: $("punjabi-row"),
   seeAll: $("see-all"),
   moodGrid: $("mood-grid"),
+  pulseCard: $("asharas-pulse"),
+  pulseMood: $("pulse-mood"),
+  pulseLanguage: $("pulse-language"),
+  pulseEnergy: $("pulse-energy"),
+  pulseEnergyLabel: $("pulse-energy-label"),
+  pulseGenerate: $("pulse-generate"),
+  pulseShare: $("pulse-share"),
+  pulseStatus: $("pulse-status"),
+  pulseStage: $("pulse-stage"),
+  pulseCovers: $("pulse-covers"),
+  pulseResultTitle: $("pulse-result-title"),
+  pulseResultMeta: $("pulse-result-meta"),
+  pulseResultActions: $("pulse-result-actions"),
+  pulsePlay: $("pulse-play"),
+  pulseOpen: $("pulse-open"),
   langSelect: $("lang-select"),
   contentTitle: $("content-title"),
   accountButton: $("account-button"),
@@ -237,6 +252,23 @@ let isHost = false;
 let activeMoodQuery = null;
 let activeMoodLabel = null;
 let activeSearchQuery = null; // last text search, so a language change can re-run it
+let pulseSongs = [];
+let pulseMixTitle = "Asharas Pulse";
+
+const PULSE_MOODS = {
+  surprise: { label: "Surprise", query: "trending hit songs 2026", fallback: "popular songs" },
+  glow: { label: "Feel Good", query: "feel good uplifting hits", fallback: "happy popular songs" },
+  afterdark: { label: "After Dark", query: "late night chill r&b", fallback: "night drive songs" },
+  focus: { label: "Deep Focus", query: "instrumental focus study", fallback: "lofi concentration music" },
+  move: { label: "Move", query: "dance workout party hits", fallback: "energetic dance songs" },
+  heart: { label: "Heart", query: "romantic love songs", fallback: "love hits" },
+};
+
+const PULSE_ENERGY = {
+  1: { label: "Soft", query: "acoustic mellow" },
+  2: { label: "Balanced", query: "popular" },
+  3: { label: "Full", query: "high energy" },
+};
 
 // Real cross-device participants, keyed by client id -> display name.
 let sessionParticipants = new Map();
@@ -1297,6 +1329,156 @@ function diversifySongs(songs, perAlbum = 3, floor = 8) {
   return kept.length >= floor ? kept : kept.concat(overflow);
 }
 
+/* ---------- Asharas Pulse ----------
+   A shareable personal mix built from three lightweight signals. Preferences
+   stay on-device; only the resulting search query reaches the music API. */
+function pulsePreferences() {
+  const moodKey = PULSE_MOODS[el.pulseMood?.value] ? el.pulseMood.value : "surprise";
+  const energy = Math.max(1, Math.min(3, Number(el.pulseEnergy?.value) || 2));
+  return {
+    moodKey,
+    language: el.pulseLanguage?.value || "",
+    energy,
+  };
+}
+
+function updatePulseEnergy() {
+  if (!el.pulseEnergy || !el.pulseEnergyLabel) return;
+  const energy = Math.max(1, Math.min(3, Number(el.pulseEnergy.value) || 2));
+  el.pulseEnergyLabel.textContent = PULSE_ENERGY[energy].label;
+  el.pulseEnergy.style.setProperty("--pulse-energy", `${(energy - 1) * 50}%`);
+}
+
+function resetPulsePreview() {
+  if (!pulseSongs.length) return;
+  pulseSongs = [];
+  el.pulseCovers?.replaceChildren();
+  el.pulseStage?.classList.remove("has-mix");
+  if (el.pulseResultActions) el.pulseResultActions.hidden = true;
+  if (el.pulseShare) el.pulseShare.hidden = true;
+  if (el.pulseResultTitle) el.pulseResultTitle.textContent = "Your sound, right now.";
+  if (el.pulseResultMeta) el.pulseResultMeta.textContent = "Build again to hear these new settings.";
+  if (el.pulseStatus) el.pulseStatus.textContent = "Your Pulse settings changed.";
+}
+
+function shufflePulse(songs) {
+  const copy = [...songs];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function renderPulseMix(songs, prefs) {
+  if (!el.pulseCovers || !el.pulseStage) return;
+  const mood = PULSE_MOODS[prefs.moodKey];
+  const energy = PULSE_ENERGY[prefs.energy];
+  const language = prefs.language
+    ? prefs.language.charAt(0).toUpperCase() + prefs.language.slice(1)
+    : "All languages";
+
+  pulseSongs = songs;
+  pulseMixTitle = `${mood.label} Pulse`;
+  el.pulseCovers.replaceChildren();
+  songs.slice(0, 4).forEach((song) => {
+    const image = coverImg(song, "");
+    image.alt = "";
+    image.loading = "eager";
+    el.pulseCovers.appendChild(image);
+  });
+  el.pulseResultTitle.textContent = pulseMixTitle;
+  el.pulseResultMeta.textContent = `${language} · ${energy.label} · ${songs.length} tracks`;
+  el.pulseResultActions.hidden = false;
+  el.pulseShare.hidden = false;
+  el.pulseStage.classList.add("has-mix");
+}
+
+async function generatePulse({ scroll = false } = {}) {
+  if (!el.pulseGenerate || el.pulseGenerate.disabled) return [];
+  const prefs = pulsePreferences();
+  const mood = PULSE_MOODS[prefs.moodKey];
+  const energy = PULSE_ENERGY[prefs.energy];
+  const language = prefs.language ? `${prefs.language} ` : "";
+  const buttonLabel = el.pulseGenerate.querySelector("span");
+
+  el.pulseGenerate.disabled = true;
+  el.pulseCard?.classList.add("is-building");
+  if (buttonLabel) buttonLabel.textContent = "Tuning your mix…";
+  el.pulseStatus.textContent = `Listening for a ${mood.label.toLowerCase()} ${energy.label.toLowerCase()} pulse…`;
+
+  try {
+    const primaryQuery = `${language}${mood.query} ${energy.query}`.trim();
+    const localPool = prefs.language
+      ? (langSongsCache[prefs.language] || [])
+      : [...trendSongs, ...Object.values(langSongsCache).flat()];
+    const primaryRequest = searchSongs(primaryQuery, 25, API_TTL_LONG);
+    let primary = localPool.length >= 8
+      ? await Promise.race([primaryRequest, sleep(4500).then(() => [])])
+      : await primaryRequest;
+    let songs = diversifySongs(primary);
+    if (songs.length < 8 && localPool.length) {
+      const seen = new Set(songs.map((song) => song.id));
+      songs = songs.concat(localPool.filter((song) => !seen.has(song.id)));
+    }
+    if (songs.length < 8) {
+      const fallback = diversifySongs(await searchSongs(`${language}${mood.fallback}`.trim(), 25, API_TTL_LONG));
+      const seen = new Set(songs.map((song) => song.id));
+      songs = songs.concat(fallback.filter((song) => !seen.has(song.id)));
+    }
+    const familiar = [...recents, ...favs].filter((song) => {
+      if (!prefs.language) return true;
+      return (song.language || "").toLowerCase().includes(prefs.language);
+    });
+    if (familiar.length) {
+      const seen = new Set(songs.map((song) => song.id));
+      songs = familiar.slice(0, 3).filter((song) => !seen.has(song.id)).concat(songs);
+    }
+    songs = shufflePulse(diversifySongs(songs)).slice(0, 18);
+    if (!songs.length) throw new Error("No playable Pulse tracks found");
+
+    renderPulseMix(songs, prefs);
+    saveJSON("ash_pulse", prefs);
+    el.pulseStatus.textContent = `${pulseMixTitle} is ready. Press play or share it with someone.`;
+    if (buttonLabel) buttonLabel.textContent = "Refresh my Pulse";
+    if (scroll) el.pulseCard?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "center" });
+    return songs;
+  } catch (error) {
+    console.error(error);
+    el.pulseStatus.textContent = "Your Pulse could not connect right now. Try again in a moment.";
+    toast("Couldn't build your Pulse right now");
+    if (buttonLabel) buttonLabel.textContent = "Try again";
+    return [];
+  } finally {
+    el.pulseGenerate.disabled = false;
+    el.pulseCard?.classList.remove("is-building");
+  }
+}
+
+function pulseShareUrl() {
+  const prefs = pulsePreferences();
+  const url = new URL(location.origin + location.pathname);
+  url.searchParams.set("pulse", prefs.moodKey);
+  if (prefs.language) url.searchParams.set("lang", prefs.language);
+  url.searchParams.set("energy", String(prefs.energy));
+  return url.toString();
+}
+
+async function sharePulse() {
+  const mood = PULSE_MOODS[pulsePreferences().moodKey];
+  const data = {
+    title: `${mood.label} Pulse · Asharas`,
+    text: `This is my ${mood.label} Pulse on Asharas. What does yours sound like?`,
+    url: pulseShareUrl(),
+  };
+  if (navigator.share) {
+    try { await navigator.share(data); }
+    catch (error) { if (error?.name !== "AbortError") copyToClipboard(data.url, "Pulse link"); }
+  } else {
+    copyToClipboard(data.url, "Pulse link");
+  }
+}
+
 // If the primary query returns nothing (e.g. a language-scoped query the
 // API has no matches for), automatically retry with fallbackQuery.
 async function runSearch(query, title, fallbackQuery) {
@@ -1813,6 +1995,37 @@ el.moodGrid.addEventListener("click", (e) => {
   runMood(card.dataset.q, label);
 });
 
+// Pulse preferences are private and persist only in this browser.
+const savedPulse = loadJSON("ash_pulse", {});
+if (el.pulseMood && PULSE_MOODS[savedPulse.moodKey]) el.pulseMood.value = savedPulse.moodKey;
+if (el.pulseLanguage && [...el.pulseLanguage.options].some((option) => option.value === savedPulse.language)) {
+  el.pulseLanguage.value = savedPulse.language;
+}
+if (el.pulseEnergy && [1, 2, 3].includes(Number(savedPulse.energy))) el.pulseEnergy.value = String(savedPulse.energy);
+updatePulseEnergy();
+
+el.pulseMood?.addEventListener("change", resetPulsePreview);
+el.pulseLanguage?.addEventListener("change", resetPulsePreview);
+el.pulseEnergy?.addEventListener("input", () => {
+  updatePulseEnergy();
+  resetPulsePreview();
+});
+el.pulseGenerate?.addEventListener("click", () => generatePulse());
+el.pulseShare?.addEventListener("click", sharePulse);
+el.pulsePlay?.addEventListener("click", () => {
+  if (!pulseSongs.length) return;
+  queue = [...pulseSongs];
+  playNextQueue = [];
+  currentIndex = -1;
+  playIndex(0);
+  toast(`${pulseMixTitle} is playing`);
+});
+el.pulseOpen?.addEventListener("click", () => {
+  if (!pulseSongs.length) return;
+  renderList(pulseSongs, pulseMixTitle);
+  showView("list");
+});
+
 // Language — re-filter the open mood OR text search, and reload home sections
 el.langSelect.addEventListener("change", () => {
   saveJSON("ash_lang", el.langSelect.value);
@@ -2293,6 +2506,21 @@ loadAllLangSections();
   if (/^\d{4}$/.test(session)) {
     startSession(false, session);
   }
+
+  const pulse = params.get("pulse");
+  if (PULSE_MOODS[pulse]) {
+    const sharedLanguage = params.get("lang") || "";
+    const sharedEnergy = Number(params.get("energy"));
+    el.pulseMood.value = pulse;
+    if ([...el.pulseLanguage.options].some((option) => option.value === sharedLanguage)) {
+      el.pulseLanguage.value = sharedLanguage;
+    }
+    if ([1, 2, 3].includes(sharedEnergy)) el.pulseEnergy.value = String(sharedEnergy);
+    updatePulseEnergy();
+    showView("home");
+    await generatePulse({ scroll: true });
+  }
+
   const q = params.get("q");
   if (!q) return;
   const songs = await runSearch(q, `Shared · "${q}"`);

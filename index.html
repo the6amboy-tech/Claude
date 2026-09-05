@@ -7,7 +7,7 @@
 
   <!-- SEO -->
   <title>Asharas Music — Free Online Music Player &amp; Synced Lyrics</title>
-  <meta name="description" content="Listen on Asharas, a free online music player with song search, playlists, synced lyrics, favorites, queues, and real-time Listen Together." />
+  <meta name="description" content="Listen on Asharas, a free online music player with instant personalized mixes, song search, playlists, synced lyrics, and real-time Listen Together." />
   <meta name="keywords" content="Asharas, Asharas music, Asharas music player, Karthik Kotapati, Karthik Kotapati founder, founder of Asharas, online music player, free music streaming, listen together, synced lyrics, Telugu Hindi English songs" />
   <meta name="author" content="Karthik Kotapati" />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
@@ -17,7 +17,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Asharas" />
   <meta property="og:title" content="Asharas Music — Free Online Music Player" />
-  <meta property="og:description" content="Search and stream music, synced lyrics, playlists, and real-time Listen Together. My contribution to music." />
+  <meta property="og:description" content="Create an instant Asharas Pulse mix, stream music, follow synced lyrics, build playlists, and listen together in real time." />
   <meta property="og:url" content="https://www.asharas.in/" />
   <meta property="og:image" content="https://www.asharas.in/og-image.png" />
   <meta property="og:image:secure_url" content="https://www.asharas.in/og-image.png" />
@@ -27,7 +27,7 @@
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Asharas Music — Free Online Music Player" />
-  <meta name="twitter:description" content="Search and stream music, synced lyrics, playlists, and real-time Listen Together." />
+  <meta name="twitter:description" content="Create an instant Asharas Pulse mix, stream music, follow synced lyrics, build playlists, and listen together." />
   <meta name="twitter:image" content="https://www.asharas.in/og-image.png" />
   <meta name="twitter:image:alt" content="Asharas — Music, in sync. Search, stream, save, and sing along together." />
   <meta name="twitter:creator" content="@karthikeditzz" />
@@ -47,7 +47,7 @@
     "browserRequirements": "Requires JavaScript",
     "image": "https://www.asharas.in/og-image.png",
     "screenshot": "https://www.asharas.in/og-image.png",
-    "featureList": ["Music search", "Synced lyrics", "Playlists", "Favorites", "Queue", "Listen Together"],
+    "featureList": ["Asharas Pulse personalized mixes", "Music search", "Synced lyrics", "Playlists", "Favorites", "Queue", "Listen Together"],
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
     "author": { "@id": "https://www.asharas.in/#karthik" },
     "publisher": { "@id": "https://www.asharas.in/#org" }
@@ -141,6 +141,11 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
 </head>
 <body>
+  <div class="motion-field" aria-hidden="true">
+    <span class="motion-cursor-glow"></span>
+    <span class="motion-orb motion-orb-rose"><i></i></span>
+    <span class="motion-orb motion-orb-blue"><i></i></span>
+  </div>
   <!-- ======== App shell ======== -->
   <div class="shell">
     <aside class="sidebar glass">
@@ -267,6 +272,81 @@
 
       <!-- ---- Home view ---- -->
       <section id="view-home">
+        <section class="pulse-card glass" id="asharas-pulse" aria-labelledby="pulse-title">
+          <div class="pulse-copy">
+            <div class="pulse-kicker">
+              <img src="assets/logos/asharas-mark.svg" width="28" height="28" alt="" aria-hidden="true" />
+              <span>Asharas Pulse</span>
+              <span class="pulse-new">Signature mix</span>
+            </div>
+            <h2 id="pulse-title">Tell us how today feels.</h2>
+            <p class="pulse-intro">Shape a personal listening session from your mood, language, and energy. No account, no endless setup.</p>
+
+            <div class="pulse-controls" aria-label="Personalize your Asharas Pulse">
+              <label class="pulse-field">
+                <span>Vibe</span>
+                <select id="pulse-mood">
+                  <option value="surprise">Surprise me</option>
+                  <option value="glow">Feel good</option>
+                  <option value="afterdark">After dark</option>
+                  <option value="focus">Deep focus</option>
+                  <option value="move">Move</option>
+                  <option value="heart">Heart</option>
+                </select>
+              </label>
+              <label class="pulse-field">
+                <span>Language</span>
+                <select id="pulse-language">
+                  <option value="">Any language</option>
+                  <option value="telugu">Telugu</option>
+                  <option value="hindi">Hindi</option>
+                  <option value="english">English</option>
+                  <option value="tamil">Tamil</option>
+                  <option value="kannada">Kannada</option>
+                  <option value="malayalam">Malayalam</option>
+                  <option value="punjabi">Punjabi</option>
+                </select>
+              </label>
+              <label class="pulse-field pulse-energy">
+                <span>Energy <output id="pulse-energy-label" for="pulse-energy">Balanced</output></span>
+                <input id="pulse-energy" type="range" min="1" max="3" step="1" value="2" aria-label="Mix energy" />
+              </label>
+            </div>
+
+            <div class="pulse-actions">
+              <button class="pulse-generate" id="pulse-generate" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8 13.8 8l5.2 1.8-5.2 1.8L12 17l-1.8-5.4L5 9.8 10.2 8 12 2.8Zm7 11.4.9 2.6 2.6.9-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9.9-2.6Z"/></svg>
+                <span>Build my Pulse</span>
+              </button>
+              <button class="pulse-share" id="pulse-share" type="button" hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg>
+                Share
+              </button>
+            </div>
+            <p class="pulse-status" id="pulse-status" role="status" aria-live="polite">Ready when you are.</p>
+          </div>
+
+          <div class="pulse-stage" id="pulse-stage" aria-live="polite">
+            <div class="pulse-orbit" aria-hidden="true">
+              <i></i><i></i><i></i>
+              <img src="assets/logos/asharas-mark.svg" width="70" height="70" alt="" />
+              <span class="pulse-wave"><b></b><b></b><b></b><b></b><b></b></span>
+            </div>
+            <div class="pulse-covers" id="pulse-covers" aria-hidden="true"></div>
+            <div class="pulse-result-copy">
+              <strong id="pulse-result-title">Your sound, right now.</strong>
+              <span id="pulse-result-meta">A fresh mix will bloom here.</span>
+            </div>
+            <div class="pulse-result-actions" id="pulse-result-actions" hidden>
+              <button id="pulse-play" type="button" aria-label="Play this Asharas Pulse">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7V5Z"/></svg>
+                Play
+              </button>
+              <button id="pulse-open" type="button">See mix</button>
+            </div>
+          </div>
+        </section>
+
         <h2 class="section-head">Browse by mood</h2>
         <div class="mood-grid" id="mood-grid">
           <button class="mood-card" data-q="hip hop hits" style="--tint: 210">Hip Hop</button>
@@ -699,5 +779,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js" onerror="window.__noMqtt=true"></script>
   <script src="app.js"></script>
+  <script src="motion.js"></script>
 </body>
 </html>

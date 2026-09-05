@@ -12,6 +12,10 @@ interface, immersive lyrics, and touch-first motion, powered by a custom
 
 ## Features
 
+- **Asharas Pulse** — choose a vibe, language, and energy level to build an
+  instant personal mix, then play, browse, or share it as a reproducible link
+- **Adaptive ambient motion** — quiet cursor light, depth, and reveal effects
+  that automatically switch off for reduced-motion or data-saver preferences
 - **Song search** via `GET /api/search/songs?query=…` with animated glass
   result cards (artwork, title, artist, album, duration)
 - **Mood grid** — Hip Hop, Chill, Party, Workout, Romance, Focus, Trending,
