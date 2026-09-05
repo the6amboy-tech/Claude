@@ -103,7 +103,7 @@ const el = {
   accountButton: $("account-button"),
   searchWrap: document.querySelector(".search-wrap"),
   reco: $("reco"),
-  filterPills: [...document.querySelectorAll(".filter-pill")],
+  searchModeSelect: $("search-mode-select"),
   recentsSection: $("recents-section"),
   recentsRow: $("recents-row"),
   listenTogether: $("listen-together"),
@@ -1742,18 +1742,20 @@ el.form.addEventListener("submit", (e) => {
   runSearch(buildSearchQuery(query, searchMode), `${modeLabel} · "${query}"`);
 });
 
-// Filter pills
-el.filterPills.forEach((pill) =>
-  pill.addEventListener("click", () => {
-    searchMode = pill.dataset.mode;
-    el.filterPills.forEach((p) => {
-      const on = p === pill;
-      p.classList.toggle("active", on);
-      p.setAttribute("aria-checked", on ? "true" : "false");
-    });
-    if (el.input.value.trim()) updateReco();
-  })
-);
+function updateSearchFilter() {
+  const selected = el.searchModeSelect?.value || "song";
+  const [mode, language = ""] = selected.split(":");
+  searchMode = mode;
+  if (mode === "language") el.langSelect.value = language;
+
+  const languageLabel = language ? language.charAt(0).toUpperCase() + language.slice(1) : "";
+  const label = mode === "artist" ? "artists" : mode === "language" ? `${languageLabel} songs` : "songs, artists, albums";
+  el.input.placeholder = `Search ${label}…`;
+  if (el.input.value.trim()) updateReco();
+}
+
+el.searchModeSelect?.addEventListener("change", updateSearchFilter);
+updateSearchFilter();
 
 // Autocomplete "recommended searches"
 let recoTimer = 0, recoSeq = 0;
@@ -2299,7 +2301,79 @@ loadAllLangSections();
   if (i !== -1) { queue = songs; playIndex(i); }
 })();
 
-/* ---------- PWA: register the service worker (installable app + offline) ---------- */
+/* ---------- PWA: install experience + offline shell ---------- */
+const installUi = {
+  android: document.getElementById("install-android"),
+  ios: document.getElementById("install-ios"),
+  status: document.getElementById("install-status"),
+  dialog: document.getElementById("install-dialog"),
+  kicker: document.getElementById("install-dialog-kicker"),
+  title: document.getElementById("install-dialog-title"),
+  steps: document.getElementById("install-steps"),
+  close: document.getElementById("install-dialog-close"),
+  done: document.getElementById("install-dialog-done"),
+};
+let deferredInstallPrompt = null;
+
+const appIsInstalled = () =>
+  window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+
+function setInstallStatus(message) {
+  if (installUi.status) installUi.status.textContent = message;
+}
+
+function showInstallHelp(platform) {
+  if (!installUi.dialog || !installUi.steps) return;
+  const ios = platform === "ios";
+  installUi.kicker.textContent = ios ? "iPhone & iPad" : "Android";
+  installUi.title.textContent = ios ? "Add Asharas to your Home Screen" : "Install Asharas from your browser";
+  const instructions = ios
+    ? ["Open Asharas in Safari.", "Tap the Share button in Safari’s toolbar.", "Choose Add to Home Screen, then tap Add."]
+    : ["Open Asharas in Chrome.", "Tap the browser menu (⋮).", "Choose Install app or Add to Home screen, then confirm."];
+  installUi.steps.replaceChildren(...instructions.map((instruction) => {
+    const item = document.createElement("li");
+    item.textContent = instruction;
+    return item;
+  }));
+  if (typeof installUi.dialog.showModal === "function") installUi.dialog.showModal();
+  else installUi.dialog.setAttribute("open", "");
+}
+
+function closeInstallHelp() {
+  if (!installUi.dialog) return;
+  if (typeof installUi.dialog.close === "function") installUi.dialog.close();
+  else installUi.dialog.removeAttribute("open");
+}
+
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  setInstallStatus("Ready to install on this device.");
+});
+
+installUi.android?.addEventListener("click", async () => {
+  if (appIsInstalled()) { setInstallStatus("Asharas is already installed on this device."); return; }
+  if (!deferredInstallPrompt) { showInstallHelp("android"); return; }
+  deferredInstallPrompt.prompt();
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  setInstallStatus(outcome === "accepted" ? "Asharas is being installed." : "Installation cancelled—you can try again anytime.");
+});
+installUi.ios?.addEventListener("click", () => {
+  if (appIsInstalled()) { setInstallStatus("Asharas is already installed on this device."); return; }
+  showInstallHelp("ios");
+});
+installUi.close?.addEventListener("click", closeInstallHelp);
+installUi.done?.addEventListener("click", closeInstallHelp);
+installUi.dialog?.addEventListener("click", (event) => {
+  if (event.target === installUi.dialog) closeInstallHelp();
+});
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  setInstallStatus("Asharas was installed successfully.");
+});
+if (appIsInstalled()) setInstallStatus("Asharas is installed on this device.");
+
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("sw.js").catch(() => {});

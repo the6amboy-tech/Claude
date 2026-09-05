@@ -191,14 +191,25 @@
             <line x1="21" y1="21" x2="16.5" y2="16.5"></line>
           </svg>
           <input id="search-input" type="text" placeholder="Search songs, artists, albums…" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="reco" />
+          <label class="search-mode-control">
+            <span class="visually-hidden">Search filter</span>
+            <select id="search-mode-select" class="search-mode-select" aria-label="Search by songs, artists, or language">
+              <option value="song">Songs</option>
+              <option value="artist">Artists</option>
+              <optgroup label="Search by language">
+                <option value="language:telugu">Telugu</option>
+                <option value="language:hindi">Hindi</option>
+                <option value="language:english">English</option>
+                <option value="language:tamil">Tamil</option>
+                <option value="language:kannada">Kannada</option>
+                <option value="language:malayalam">Malayalam</option>
+                <option value="language:punjabi">Punjabi</option>
+              </optgroup>
+            </select>
+          </label>
           <button type="submit" class="search-btn">Search</button>
         </form>
         <div class="reco-dropdown glass" id="reco" hidden></div>
-        <div class="search-filters" role="radiogroup" aria-label="Search mode">
-          <button class="filter-pill active" data-mode="song" role="radio" aria-checked="true">Songs</button>
-          <button class="filter-pill" data-mode="artist" role="radio" aria-checked="false">Artists</button>
-          <button class="filter-pill" data-mode="language" role="radio" aria-checked="false">Language</button>
-        </div>
       </div>
 
       <div class="toolbar">
@@ -299,16 +310,27 @@
         <div class="trend-row" id="punjabi-row"></div>
 
         <!-- Made by Karthik -->
-        <section class="creator-section">
-          <div class="creator-avatar"><span>K</span></div>
+        <section class="creator-section" aria-labelledby="creator-title">
+          <div class="creator-visual" aria-hidden="true">
+            <div class="creator-orbit">
+              <span class="creator-orbit-line"></span>
+              <div class="creator-avatar"><span>K</span></div>
+              <i class="creator-orbit-dot dot-one"></i>
+              <i class="creator-orbit-dot dot-two"></i>
+            </div>
+            <div class="creator-wave">
+              <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <p class="creator-signoff">Designed in Bengaluru<br>for listeners everywhere.</p>
+          </div>
           <div class="creator-info">
-            <span class="creator-tag">✦ Founder of Asharas</span>
-            <h3 class="creator-name">Karthik Kotapati</h3>
-            <p class="creator-bio">Asharas is my small, joyful experiment in making music feel personal. I’m Karthik — a self-taught builder turning curiosity, late-night sketches, and open APIs into a calmer way to discover songs. Every search, playlist, and lyric is part of that ongoing contribution. 🪷</p>
+            <span class="creator-tag"><i></i> Independent music experiment</span>
+            <h2 class="creator-name" id="creator-title"><small>A note from Karthik</small>Built for the moment a song becomes yours.</h2>
+            <p class="creator-bio">I’m Karthik Kotapati, the founder of Asharas. I taught myself to build on the open web so discovering a song could feel less like scrolling and more like finding a memory. Asharas is my evolving contribution to music—carefully shaped, one detail at a time.</p>
             <div class="creator-chips">
-              <span class="creator-chip">Curiosity-led craft</span>
-              <span class="creator-chip">Open-web music</span>
-              <span class="creator-chip">Built with care</span>
+              <span class="creator-chip"><b>01</b> Self-taught craft</span>
+              <span class="creator-chip"><b>02</b> Open-web music</span>
+              <span class="creator-chip"><b>03</b> Human-first details</span>
             </div>
             <div class="creator-socials">
               <a class="creator-social" href="https://www.linkedin.com/in/karthik-kotapati-4883a935b/" target="_blank" rel="me noopener" aria-label="Karthik Kotapati on LinkedIn" title="LinkedIn">
@@ -324,6 +346,31 @@
                 <span>X</span>
               </a>
             </div>
+          </div>
+        </section>
+
+        <section class="install-section" aria-labelledby="install-title">
+          <div class="install-art" aria-hidden="true">
+            <div class="install-halo"></div>
+            <div class="install-icon">A</div>
+            <span class="install-note note-one">♪</span>
+            <span class="install-note note-two">♫</span>
+          </div>
+          <div class="install-copy">
+            <span class="install-kicker">Asharas, wherever you listen</span>
+            <h2 id="install-title">Make it feel like an app.</h2>
+            <p>Install Asharas on your home screen for a faster, full-screen music experience with your library, favorites, queue, and lyrics close at hand.</p>
+            <div class="install-actions">
+              <button class="install-button install-android" id="install-android" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 8.4h9.6v8.1c0 .8-.6 1.5-1.4 1.5H8.6c-.8 0-1.4-.7-1.4-1.5V8.4Zm-2.1.2c.6 0 1.1.5 1.1 1.1v5.7a1.1 1.1 0 0 1-2.2 0V9.7c0-.6.5-1.1 1.1-1.1Zm13.8 0c.6 0 1.1.5 1.1 1.1v5.7a1.1 1.1 0 0 1-2.2 0V9.7c0-.6.5-1.1 1.1-1.1ZM8 7.4a4 4 0 0 1 8 0H8Zm.7-3.8L7.6 2.1m7.7 1.5 1.1-1.5M9.5 18v2.2m5-2.2v2.2"/></svg>
+                <span><small>Install for</small>Android</span>
+              </button>
+              <button class="install-button install-ios" id="install-ios" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.8 13.1c0-2 1.7-3 1.8-3.1a3.9 3.9 0 0 0-3.1-1.7c-1.3-.1-2.6.8-3.2.8-.7 0-1.7-.8-2.8-.8-1.4 0-2.8.9-3.6 2.2-1.6 2.7-.4 6.8 1.1 9 .8 1 1.7 2.2 2.9 2.1 1.1 0 1.6-.7 3.1-.7s1.9.7 3.2.7c1.3 0 2.1-1.1 2.8-2.2.9-1.2 1.2-2.5 1.2-2.6-.1 0-2.4-.9-2.4-3.7ZM14.6 6.9c.6-.8 1.1-2 1-3.2-1 .1-2.3.7-3 1.5-.7.7-1.2 1.9-1.1 3 1.2.1 2.4-.5 3.1-1.3Z"/></svg>
+                <span><small>Install for</small>iPhone &amp; iPad</span>
+              </button>
+            </div>
+            <p class="install-status" id="install-status" role="status">No app store account required.</p>
           </div>
         </section>
       </section>
@@ -452,6 +499,15 @@
       <button class="pill-btn" id="pl-create">Create &amp; add</button>
     </div>
     <button class="pill-btn ghost" id="pl-close">Close</button>
+  </dialog>
+
+  <dialog id="install-dialog" class="glass install-dialog" aria-labelledby="install-dialog-title">
+    <button class="install-dialog-close" id="install-dialog-close" type="button" aria-label="Close install instructions">×</button>
+    <div class="install-dialog-icon" aria-hidden="true">A</div>
+    <p class="install-dialog-kicker" id="install-dialog-kicker">Install Asharas</p>
+    <h2 id="install-dialog-title">Add Asharas to your Home Screen</h2>
+    <ol id="install-steps"></ol>
+    <button class="pill-btn install-dialog-done" id="install-dialog-done" type="button">Got it</button>
   </dialog>
 
   <!-- ======== Listen Together modals ======== -->
