@@ -46,6 +46,20 @@
       body.classList.remove("motion-pointer-active");
     });
 
+    /* A local highlight skims the search glass without adding a heavy shadow. */
+    const searchBox = document.querySelector(".search-box");
+    if (searchBox) {
+      searchBox.addEventListener("pointermove", (event) => {
+        const rect = searchBox.getBoundingClientRect();
+        searchBox.style.setProperty("--search-glow-x", `${event.clientX - rect.left}px`);
+        searchBox.style.setProperty("--search-glow-y", `${event.clientY - rect.top}px`);
+        searchBox.classList.add("is-pointer-lit");
+      }, { passive: true });
+      searchBox.addEventListener("pointerleave", () => {
+        searchBox.classList.remove("is-pointer-lit");
+      }, { passive: true });
+    }
+
     /* Small surfaces lean toward the pointer without moving layout. */
     const tiltSelector = ".pulse-stage, .mood-card, .trend-cover-box, .artist-card, .install-icon, .creator-visual";
     let activeTilt = null;
