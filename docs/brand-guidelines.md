@@ -10,7 +10,7 @@ Asharas makes music discovery feel personal, immediate, and shared. The identity
 - Horizontal wordmark: `assets/logos/asharas-wordmark.svg`
 - Maskable app source: `assets/logos/asharas-maskable.svg`
 - Social preview source: `assets/social/asharas-social-card.svg`
-- Search/browser favicons: `favicon.svg`, `favicon-48.png`, `favicon-64.png`, and `favicon-32.png`
+- Search/browser favicons: `favicon.ico`, `favicon.svg`, `favicon-48.png`, `favicon-64.png`, and `favicon-32.png`
 - Minimum digital size: 24px for the mark and 120px for the wordmark.
 - Clear space: keep at least one quarter of the mark width around the logo.
 - Do not stretch, rotate, recolor, outline, or add effects to the logo artwork.
