@@ -1,5 +1,18 @@
 /* Asharas — adaptive Apple Music-inspired midnight glass interface */
 
+/* Layout is theme-independent. Keeping these tokens on the shared root makes
+   Light and Dark use exactly the same sidebar, player, and control geometry. */
+:root {
+  --sidebar-w: 16.25rem;
+  --player-h: 5.5rem;
+  --tabbar-h: 5rem;
+  --control-size: 44px;
+  --radius: 16px;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 :root[data-theme="light"],
 :root[data-theme="light"].dim {
   color-scheme: light;
@@ -14,14 +27,6 @@
   --glass-border: 1px solid rgba(0, 0, 0, 0.08);
   --glass-blur: blur(36px) saturate(180%);
   --shadow: 0 18px 55px rgba(0, 0, 0, 0.1);
-  --radius: 16px;
-  --sidebar-w: 16.25rem;
-  --player-h: 5.5rem;
-  --tabbar-h: 5rem;
-  --control-size: 44px;
-  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
-  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
-  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 html {
