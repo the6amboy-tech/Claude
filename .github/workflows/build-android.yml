@@ -113,9 +113,8 @@ jobs:
           test -s app-release-signed.apk
           test -s app-release-bundle.aab
           BUILD_TOOLS="$(find "${ANDROID_HOME}"/build-tools -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
-          APK_CERT_SHA256="$("${BUILD_TOOLS}/apksigner" verify --verbose --print-certs app-release-signed.apk | tee android-signature.txt | awk -F ': ' '/certificate SHA-256 digest/{print toupper($2); exit}' | sed 's/../&:/g;s/:$//')"
-          ASSET_CERT_SHA256="$(node -p "require('./.well-known/assetlinks.json')[0].target.sha256_cert_fingerprints[0]")"
-          test "${APK_CERT_SHA256}" = "${ASSET_CERT_SHA256}"
+          "${BUILD_TOOLS}/apksigner" verify --verbose --print-certs app-release-signed.apk | tee android-signature.txt
+          node -e "const fs=require('fs'); const output=fs.readFileSync('android-signature.txt','utf8'); const match=output.match(/certificate SHA-256 digest:\\s*([0-9a-f:]+)/i); if(!match) throw new Error('APK certificate digest was not reported'); const normalize=v=>v.replace(/:/g,'').toLowerCase(); const linked=require('./.well-known/assetlinks.json')[0].target.sha256_cert_fingerprints[0]; if(normalize(match[1])!==normalize(linked)) throw new Error('APK certificate does not match .well-known/assetlinks.json'); console.log('Digital Asset Links certificate matches the signed APK');"
           "${BUILD_TOOLS}/aapt" dump badging app-release-signed.apk | tee android-apk-badging.txt
           grep -q "package: name='io.github.the6amboy.asharas'" android-apk-badging.txt
           unzip -t app-release-bundle.aab
