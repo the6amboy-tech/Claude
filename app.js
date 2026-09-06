@@ -2630,7 +2630,17 @@ if (appIsInstalled()) setInstallStatus("Asharas is installed on this device.");
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch(() => {});
+    const hadController = Boolean(navigator.serviceWorker.controller);
+    let refreshingForUpdate = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (!hadController || refreshingForUpdate) return;
+      refreshingForUpdate = true;
+      window.location.reload();
+    });
+    navigator.serviceWorker
+      .register("sw.js", { updateViaCache: "none" })
+      .then((registration) => registration.update())
+      .catch(() => {});
   });
 }
 

@@ -78,12 +78,11 @@ select:focus-visible {
 
 /* Desktop library shell */
 .shell {
-  display: grid;
-  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  display: block;
   min-height: 100vh;
   max-width: none;
   margin: 0;
-  padding: 0 0 calc(var(--player-h) + 2.5rem);
+  padding: 0 0 calc(var(--player-h) + 2.5rem) var(--sidebar-w);
   gap: 0;
 }
 
@@ -220,7 +219,7 @@ select:focus-visible {
 
 /* Content layer */
 .app {
-  grid-column: 2;
+  min-width: 0;
   width: 100%;
   max-width: 100rem;
   padding: 2rem clamp(1.5rem, 4vw, 4.5rem) 4rem;
