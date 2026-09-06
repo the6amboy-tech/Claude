@@ -1074,7 +1074,7 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-@media (min-width: 901px) and (max-width: 1180px) {
+@media (min-width: 1101px) and (max-width: 1180px) {
   .player { grid-template-columns: minmax(11rem,1fr) minmax(19rem,1.25fr) auto; }
   .player-right #btn-fav,
   .player-right #btn-download,
@@ -1082,8 +1082,9 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
   .player-right .volume { display: none; }
 }
 
-/* iPhone-style layout: five-tab bar and mini-player. */
-@media (max-width: 900px) {
+/* Compact touch layout: five-tab bar and mini-player. Keep this active on
+   tablets and touch-first browsers so the desktop rail can never cover the UI. */
+@media (max-width: 1100px), (hover: none) and (pointer: coarse) {
   :root[data-theme="light"] {
     --player-h: 4.1rem;
     --tabbar-h: 5rem;
@@ -1115,6 +1116,7 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
     inset: auto 1rem max(.7rem, env(safe-area-inset-bottom, 0px));
     z-index: 90;
     width: calc(100% - 2rem);
+    max-width: calc(100vw - 2rem);
     height: calc(4.7rem + env(safe-area-inset-bottom,0px));
     display: block;
     padding: .34rem .42rem env(safe-area-inset-bottom,0px);
@@ -1148,6 +1150,7 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
     font-size: .62rem;
     font-weight: 560;
     text-align: center;
+    touch-action: manipulation;
   }
   .nav-btn svg { width: 1.5rem; height: 1.5rem; color: currentColor; }
   .nav-btn:hover { background: transparent; }
@@ -1159,6 +1162,11 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
   [data-nav="playlists"] { order: 4; }
   .nav-label-desktop { display: none; }
   .nav-label-mobile { display: inline; }
+
+  body.np-open .sidebar {
+    visibility: hidden;
+    pointer-events: none;
+  }
 
   .app::before { inset: 0 0 var(--tabbar-h) 0; background: linear-gradient(135deg, rgba(255,255,255,.28), rgba(255,255,255,.04)); }
   .search-wrap { top: 0; margin: 0 -.15rem; padding-top: .5rem; background: linear-gradient(rgba(247,248,252,.7) 70%,rgba(247,248,252,0)); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
@@ -1799,7 +1807,7 @@ dialog::backdrop { background: rgba(0,0,0,.58); }
 .pl-option { color: var(--text); }
 .pl-option:hover { background: rgba(255,255,255,.08); }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px), (hover: none) and (pointer: coarse) {
   :root[data-theme="dark"] { --player-h: 4.1rem; --tabbar-h: 5rem; }
 
   body {
@@ -1984,7 +1992,7 @@ body.motion-scrolled .search-box:not(:focus-within) {
   100% { transform: translate3d(-1%, 4%, 0) scale(.98); opacity: .82; }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px), (hover: none) and (pointer: coarse) {
   .motion-cursor-glow { display: none; }
   .motion-orb { opacity: .52; }
   .motion-reveal {
@@ -2121,7 +2129,7 @@ body.motion-scrolled .search-box:not(:focus-within) {
 @keyframes pulse-wave { from { transform: scaleY(.45); opacity: .55; } to { transform: scaleY(1); opacity: 1; } }
 @keyframes pulse-cover-in { from { opacity: 0; translate: 0 1rem; scale: .84; } to { opacity: 1; translate: 0 0; scale: 1; } }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px), (hover: none) and (pointer: coarse) {
   .pulse-card { grid-template-columns: 1fr; gap: 1.25rem; min-height: 0; margin-top: 0; padding: 1.35rem; border-radius: 1.5rem; }
   .pulse-copy h2 { max-width: 11ch; font-size: clamp(2.15rem, 10vw, 3.15rem); }
   .pulse-intro { font-size: .82rem; }
@@ -2347,7 +2355,7 @@ html[data-theme="light"] .pulse-result-actions button:last-child { color: #30303
 html[data-theme="light"] .pulse-generate,
 html[data-theme="light"] .pulse-result-actions button:first-child { color: #fff; border-color: #1d1d1f; background: #1d1d1f; }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px), (hover: none) and (pointer: coarse) {
   .content-heading { gap: .4rem; }
   .header-actions { gap: .35rem; }
   .theme-toggle { min-width: 2.35rem; padding-inline: .62rem; }

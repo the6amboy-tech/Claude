@@ -1,8 +1,8 @@
 /* Asharas service worker — offline app shell + safe pass-through.
    Bump CACHE to invalidate old shells on deploy. */
-const CACHE = "asharas-v19";
+const CACHE = "asharas-v20";
 const SHELL = [
-  "./", "./index.html", "./style.css", "./apple-player.css", "./app.js", "./motion.js", "./manifest.webmanifest",
+  "./", "./index.html", "./style.css?v=20", "./apple-player.css?v=20", "./app.js?v=20", "./motion.js?v=20", "./manifest.webmanifest",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png",
   "./icons/apple-touch-icon.png", "./favicon.ico", "./favicon.svg", "./favicon-48.png", "./favicon-64.png", "./favicon-32.png",
   "./assets/logos/asharas-mark.svg",
@@ -35,14 +35,14 @@ self.addEventListener("fetch", (e) => {
 
   // Page loads: network-first, fall back to the cached shell when offline.
   if (req.mode === "navigate") {
-    e.respondWith(fetch(req).catch(() => caches.match("./index.html")));
+    e.respondWith(fetch(req, { cache: "no-store" }).catch(() => caches.match("./index.html")));
     return;
   }
 
   // Same-origin static assets: network-first so UI fixes deploy immediately,
   // with the cached shell retained as the offline fallback.
   e.respondWith(
-    fetch(req)
+    fetch(req, { cache: "no-store" })
       .then((res) => {
         if (res && res.ok) {
           const copy = res.clone();

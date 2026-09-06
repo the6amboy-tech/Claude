@@ -2630,7 +2630,7 @@ if (appIsInstalled()) setInstallStatus("Asharas is installed on this device.");
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
+    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch(() => {});
   });
 }
 
@@ -2659,7 +2659,8 @@ const np = {
 };
 const NP_RANGE = 3;
 const npCards = new Map(); // song id -> card element (kept stable so covers glide)
-const npMobile = () => matchMedia("(max-width: 900px)").matches;
+const npMobile = () =>
+  matchMedia("(max-width: 1100px), (hover: none) and (pointer: coarse)").matches;
 let npSeeking = false;
 let npOffset = 0;
 let npOffsetAnimation = null;
