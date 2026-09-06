@@ -115,6 +115,9 @@ const el = {
   pulseOpen: $("pulse-open"),
   langSelect: $("lang-select"),
   contentTitle: $("content-title"),
+  viewBack: $("view-back"),
+  themeToggle: $("theme-toggle"),
+  themeToggleLabel: $("theme-toggle-label"),
   accountButton: $("account-button"),
   searchWrap: document.querySelector(".search-wrap"),
   reco: $("reco"),
@@ -500,11 +503,22 @@ function copyToClipboard(text, label) {
 el.langSelect.value = loadJSON("ash_lang", "");
 if (loadJSON("ash_dim", false)) document.documentElement.classList.add("dim");
 
-// One adaptive light material keeps the interface visually consistent.
-function applyTheme() {
-  document.documentElement.setAttribute("data-theme", "light");
+function applyTheme(theme, { persist = true } = {}) {
+  const next = theme === "light" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  if (persist) saveJSON("ash_theme", next);
+
+  const isDark = next === "dark";
+  const target = isDark ? "light" : "dark";
+  el.themeToggle?.setAttribute("aria-pressed", String(isDark));
+  el.themeToggle?.setAttribute("aria-label", `Switch to ${target} theme`);
+  el.themeToggle?.setAttribute("title", `Switch to ${target} theme`);
+  if (el.themeToggleLabel) el.themeToggleLabel.textContent = target[0].toUpperCase() + target.slice(1);
+
+  const themeColor = document.querySelector('meta[name="theme-color"]');
+  if (themeColor) themeColor.content = isDark ? "#09090d" : "#f4f5f9";
 }
-applyTheme();
+applyTheme(document.documentElement.dataset.theme, { persist: false });
 
 /* ---------- API helpers ---------- */
 
@@ -787,6 +801,7 @@ function showView(name) {
   el.viewList.hidden = name !== "list";
   el.viewQueue.hidden = name !== "queue";
   el.viewPlaylists.hidden = name !== "playlists";
+  if (el.viewBack) el.viewBack.hidden = name === "home";
   el.navBtns.forEach((b) => {
     const nav = b.dataset.nav;
     let active = nav === name;
@@ -805,6 +820,11 @@ function showView(name) {
     };
     el.contentTitle.textContent = titles[name] || "Asharas";
   }
+}
+
+function returnHome() {
+  showView("home");
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function toast(msg) {
@@ -1772,9 +1792,10 @@ function addToPlaylist(pl, song) {
 el.navBtns.forEach((btn) =>
   btn.addEventListener("click", () => {
     const nav = btn.dataset.nav;
-    if (nav === "home") showView("home");
+    if (nav === "home") returnHome();
     else if (nav === "search") {
       showView("home");
+      if (el.viewBack) el.viewBack.hidden = false;
       if (el.contentTitle) el.contentTitle.textContent = "Search";
       el.navBtns.forEach((item) => {
         item.classList.toggle("active", item === btn);
@@ -1789,9 +1810,13 @@ el.navBtns.forEach((btn) =>
     else if (nav === "playlists") { activeMoodQuery = null; activeMoodLabel = null; activeSearchQuery = null; renderPlaylists(); showView("playlists"); }
   })
 );
-el.backHome.addEventListener("click", () => showView("home"));
-el.backHome2.addEventListener("click", () => showView("home"));
-el.backHome3.addEventListener("click", () => showView("home"));
+el.viewBack?.addEventListener("click", returnHome);
+el.backHome.addEventListener("click", returnHome);
+el.backHome2.addEventListener("click", returnHome);
+el.backHome3.addEventListener("click", returnHome);
+el.themeToggle?.addEventListener("click", () => {
+  applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+});
 
 function librarySongs() {
   const all = [...recents, ...favs, ...playlists.flatMap((playlist) => playlist.songs || [])];
