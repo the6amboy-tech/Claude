@@ -45,10 +45,15 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Make modern Android command-line tools visible to Bubblewrap
+        run: |
+          test -x "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          ln -sfn "${ANDROID_HOME}/cmdline-tools/latest/bin" "${ANDROID_HOME}/bin"
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Install Bubblewrap
         run: npm install -g @bubblewrap/cli@1.24.1
@@ -64,29 +69,87 @@ jobs:
       - name: Decode signing keystore
         env:
           KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           if [ -z "$KS" ]; then echo "::error::ANDROID_KEYSTORE_BASE64 secret is not set"; exit 1; fi
+          if [ -z "$KS_PASSWORD" ]; then echo "::error::ANDROID_KEYSTORE_PASSWORD secret is not set"; exit 1; fi
+          if [ -z "$KEY_PASSWORD" ]; then echo "::error::ANDROID_KEY_PASSWORD secret is not set"; exit 1; fi
+          if [ -z "$KEY_ALIAS" ]; then echo "::error::ANDROID_KEY_ALIAS secret is not set"; exit 1; fi
           echo "$KS" | base64 -d > android.keystore
           echo "Keystore restored ($(stat -c%s android.keystore) bytes)"
+          keytool -list -keystore android.keystore -alias "$KEY_ALIAS" -storepass "$KS_PASSWORD" >/dev/null
 
       - name: Prepare TWA project from twa-manifest.json
         run: |
-          # Stamp in the requested version, then let Bubblewrap generate the
-          # Android/Gradle project from our committed twa-manifest.json.
+          # Bubblewrap's persisted field is "appVersion" (not
+          # "appVersionName"). Generate directly from the committed config so
+          # CI remains non-interactive and cannot hide a failed init prompt.
           node -e "const f='twa-manifest.json',m=require('./'+f);\
-            m.appVersionName='${{ github.event.inputs.versionName }}';\
+            m.appVersion='${{ github.event.inputs.versionName }}';\
             m.appVersionCode=parseInt('${{ github.event.inputs.versionCode }}',10);\
             m.signingKey={path:'./android.keystore',alias:'${{ secrets.ANDROID_KEY_ALIAS }}'};\
+            delete m.appVersionName;\
             require('fs').writeFileSync(f,JSON.stringify(m,null,2));"
-          bubblewrap init --manifest="https://www.asharas.in/manifest.webmanifest" --directory=. --skipPwaValidation <<< "$(printf 'Y\n')" || true
-          # Regenerate the native project from the (committed) twa-manifest.json
-          bubblewrap update --skipVersionUpgrade || true
+          bubblewrap update --skipVersionUpgrade
+          test -f app/build.gradle
+          if grep -Eq 'splashScreenFadeOutDuration:[[:space:]]*,' app/build.gradle; then
+            echo "::error::Bubblewrap generated an empty splashScreenFadeOutDuration"
+            exit 1
+          fi
 
       - name: Build signed bundle
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: bubblewrap build --skipPwaValidation
+
+      - name: Run Android lint and unit checks
+        run: ./gradlew --no-daemon lintRelease testReleaseUnitTest
+
+      - name: Verify signed Android outputs
+        run: |
+          test -s app-release-signed.apk
+          test -s app-release-bundle.aab
+          BUILD_TOOLS="$(find "${ANDROID_HOME}"/build-tools -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          "${BUILD_TOOLS}/apksigner" verify --verbose --print-certs app-release-signed.apk
+          "${BUILD_TOOLS}/aapt" dump badging app-release-signed.apk | tee android-apk-badging.txt
+          grep -q "package: name='io.github.the6amboy.asharas'" android-apk-badging.txt
+          unzip -t app-release-bundle.aab
+
+      - name: Enable Android emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install and launch on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            set -euo pipefail
+            PACKAGE="io.github.the6amboy.asharas"
+            adb install -r app-release-signed.apk
+            adb shell pm list packages | grep -q "package:${PACKAGE}"
+            adb logcat -c
+            adb shell monkey -p "${PACKAGE}" -c android.intent.category.LAUNCHER 1 | tee android-launch.txt
+            grep -q "Events injected: 1" android-launch.txt
+            sleep 12
+            adb shell dumpsys package "${PACKAGE}" | grep -E 'versionCode=|versionName=' | tee android-package.txt
+            adb shell dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp' | tee android-window.txt || true
+            adb logcat -d -v brief > android-logcat.txt
+            if grep -E "ANR in ${PACKAGE}|Process: ${PACKAGE}" android-logcat.txt; then
+              echo "::error::Android launch produced an app crash or ANR"
+              exit 1
+            fi
+            adb shell screencap -p /sdcard/asharas-android.png
+            adb pull /sdcard/asharas-android.png asharas-android.png
 
       - name: Show digital-asset-links fingerprint (host this to remove the URL bar)
         run: |
@@ -95,6 +158,7 @@ jobs:
             -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" 2>/dev/null | grep "SHA256:" || true
 
       - name: Upload artifacts (.aab + .apk)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: asharas-android
@@ -103,3 +167,9 @@ jobs:
             app-release-bundle.aab
             app-release-signed.apk
             assetlinks.json
+            android-apk-badging.txt
+            android-launch.txt
+            android-package.txt
+            android-window.txt
+            android-logcat.txt
+            asharas-android.png

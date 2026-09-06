@@ -22,7 +22,7 @@
   "fallbackType": "customtabs",
   "features": {},
   "shortcuts": [],
-  "appVersionName": "1.0.0",
+  "appVersion": "1.0.0",
   "appVersionCode": 1,
   "minSdkVersion": 23,
   "isChromeOSOnly": false,
