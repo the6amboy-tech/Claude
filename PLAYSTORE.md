@@ -34,20 +34,18 @@ bubblewrap build      # produces app-release-bundle.aab + app-release-signed.apk
 ```
 
 ## 2. Verify domain ownership (removes the browser address bar)
-Bubblewrap prints an `assetlinks.json` (it contains your key's SHA-256). That
-file must be served at the **origin root**:
+The signed app's certificate is already registered in
+`.well-known/assetlinks.json`. That file must remain available at the **origin
+root**:
 
 ```
 https://www.asharas.in/.well-known/assetlinks.json
 ```
 
-⚠️ **Important:** this site lives at a *project* path (`/Claude/`), but asset
-links must sit at the *domain* root. GitHub Pages serves the domain root from a
-repo named exactly **`www.asharas.in`**. So either:
-- create that repo and put the file at `/.well-known/assetlinks.json`, **or**
-- point a **custom domain** (e.g. `asharas.app`) at this site and host
-  `/.well-known/assetlinks.json` there (then update `host`/URLs in
-  `twa-manifest.json`).
+The Pages deployment publishes the repository through the `www.asharas.in`
+custom domain, so the committed file is deployed at that root URL. Android CI
+also verifies that its fingerprint matches the certificate used to sign every
+APK.
 
 Without verified asset links the app still works but shows a thin URL bar.
 
@@ -88,9 +86,10 @@ you on GitHub's runners. One-time setup:
 3. **Run it:** Actions tab → *Build Android App Bundle (TWA)* → *Run workflow*
    (set version name/code). When it finishes, download the **asharas-android**
    artifact — it contains `app-release-bundle.aab` (upload this to Play Console),
-   the signed `.apk` (for sideload testing), and `assetlinks.json` (host at your
-   domain root per step 2 above). Bump the version **code** for every new release.
+   the signed `.apk` (for sideload testing), `.well-known/assetlinks.json`, and
+   Android emulator diagnostics. Bump the version **code** for every new release.
 
-> Note: this workflow is a solid starting point but hasn't been run against a
-> real keystore yet — the first run may need a small tweak (Bubblewrap version or
-> a prompt). Ping me with the run log and I'll fix it fast.
+The workflow builds with the real signing keystore, runs Android lint and unit
+checks, verifies both signed outputs, then installs and launches the APK in an
+Android API 35 emulator while checking for crashes, ANRs, browser onboarding,
+and offline error screens.

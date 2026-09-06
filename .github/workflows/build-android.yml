@@ -113,7 +113,9 @@ jobs:
           test -s app-release-signed.apk
           test -s app-release-bundle.aab
           BUILD_TOOLS="$(find "${ANDROID_HOME}"/build-tools -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
-          "${BUILD_TOOLS}/apksigner" verify --verbose --print-certs app-release-signed.apk
+          APK_CERT_SHA256="$("${BUILD_TOOLS}/apksigner" verify --verbose --print-certs app-release-signed.apk | tee android-signature.txt | awk -F ': ' '/certificate SHA-256 digest/{print toupper($2); exit}' | sed 's/../&:/g;s/:$//')"
+          ASSET_CERT_SHA256="$(node -p "require('./.well-known/assetlinks.json')[0].target.sha256_cert_fingerprints[0]")"
+          test "${APK_CERT_SHA256}" = "${ASSET_CERT_SHA256}"
           "${BUILD_TOOLS}/aapt" dump badging app-release-signed.apk | tee android-apk-badging.txt
           grep -q "package: name='io.github.the6amboy.asharas'" android-apk-badging.txt
           unzip -t app-release-bundle.aab
@@ -135,15 +137,20 @@ jobs:
           script: |
             adb install -r app-release-signed.apk
             adb shell pm list packages | grep -q "package:io.github.the6amboy.asharas"
+            adb shell "echo '_ --disable-fre --no-default-browser-check --disable-digital-asset-link-verification-for-url=\"https://www.asharas.in\"' > /data/local/tmp/chrome-command-line"
+            adb shell am force-stop com.android.chrome
             adb logcat -c
             adb shell monkey -p io.github.the6amboy.asharas -c android.intent.category.LAUNCHER 1 | tee android-launch.txt
             grep -q "Events injected: 1" android-launch.txt
             sleep 12
             adb shell dumpsys package io.github.the6amboy.asharas | grep -E 'versionCode=|versionName=' | tee android-package.txt
-            adb shell dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp' | tee android-window.txt || true
+            adb shell dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity' | tee android-window.txt || true
             adb logcat -d -v brief > android-logcat.txt
             adb shell screencap -p /sdcard/asharas-android.png
             adb pull /sdcard/asharas-android.png asharas-android.png
+            adb shell uiautomator dump /sdcard/asharas-ui.xml
+            adb pull /sdcard/asharas-ui.xml asharas-ui.xml
+            if grep -Eq "Welcome to Chrome|Webpage not available|ERR_INTERNET_DISCONNECTED" asharas-ui.xml; then echo "::error::Android app did not reach the Asharas interface"; exit 1; fi
             if grep -E "ANR in io.github.the6amboy.asharas|Process: io.github.the6amboy.asharas" android-logcat.txt; then echo "::error::Android launch produced an app crash or ANR"; exit 1; fi
 
       - name: Show digital-asset-links fingerprint (host this to remove the URL bar)
@@ -158,13 +165,16 @@ jobs:
         with:
           name: asharas-android
           if-no-files-found: warn
+          include-hidden-files: true
           path: |
             app-release-bundle.aab
             app-release-signed.apk
-            assetlinks.json
+            .well-known/assetlinks.json
+            android-signature.txt
             android-apk-badging.txt
             android-launch.txt
             android-package.txt
             android-window.txt
             android-logcat.txt
             asharas-android.png
+            asharas-ui.xml

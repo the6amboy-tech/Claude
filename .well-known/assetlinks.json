@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.the6amboy.asharas",
+      "sha256_cert_fingerprints": [
+        "D4:94:C6:03:CC:73:20:38:DA:4F:08:7E:82:99:F7:36:AF:03:A1:BA:98:31:21:77:B8:52:98:50:9F:DF:AD:00"
+      ]
+    }
+  }
+]
