@@ -132,10 +132,13 @@
         else if (matchMedia("(prefers-color-scheme: light)").matches) theme = "light";
       } catch {}
       document.documentElement.dataset.theme = theme;
+      if (matchMedia("(display-mode: standalone)").matches || navigator.standalone === true) {
+        document.documentElement.classList.add("app-installed");
+      }
     })();
   </script>
-  <link rel="stylesheet" href="style.css?v=22" />
-  <link rel="stylesheet" href="apple-player.css?v=22" />
+  <link rel="stylesheet" href="style.css?v=23" />
+  <link rel="stylesheet" href="apple-player.css?v=23" />
   <link rel="icon" href="/favicon.ico" sizes="48x48" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
@@ -143,7 +146,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
 
   <!-- PWA / installable app -->
-  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="manifest" href="manifest.webmanifest?v=23" />
   <meta name="theme-color" content="#09090d" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -227,6 +230,10 @@
           </div>
         </div>
         <div class="header-actions">
+          <button class="header-install" id="header-install" type="button" aria-label="Install Asharas as an app" title="Install Asharas as an app">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7.5 10.5 4.5 4.5 4.5-4.5"/><path d="M5 19h14"/></svg>
+            <span>Install</span>
+          </button>
           <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to light theme" aria-pressed="true" title="Switch to light theme">
             <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.6"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg>
             <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 15.3A8.5 8.5 0 0 1 8.7 3.4 8.5 8.5 0 1 0 20.6 15.3Z"/></svg>
@@ -483,20 +490,20 @@
             <span class="install-note note-two">♫</span>
           </div>
           <div class="install-copy">
-            <span class="install-kicker">Asharas, wherever you listen</span>
-            <h2 id="install-title">Make it feel like an app.</h2>
-            <p>Install Asharas on your home screen for a faster, full-screen music experience with your library, favorites, queue, and lyrics close at hand.</p>
+            <span class="install-kicker">Your music app, on your device</span>
+            <h2 id="install-title">Install the Asharas app.</h2>
+            <p>Add Asharas directly to your device for a clean, standalone music experience. It opens in its own app window with the same search, library, favorites, queue, themes, player, and lyrics as the website—not as a browser extension.</p>
             <div class="install-actions">
-              <button class="install-button install-android" id="install-android" type="button">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 8.4h9.6v8.1c0 .8-.6 1.5-1.4 1.5H8.6c-.8 0-1.4-.7-1.4-1.5V8.4Zm-2.1.2c.6 0 1.1.5 1.1 1.1v5.7a1.1 1.1 0 0 1-2.2 0V9.7c0-.6.5-1.1 1.1-1.1Zm13.8 0c.6 0 1.1.5 1.1 1.1v5.7a1.1 1.1 0 0 1-2.2 0V9.7c0-.6.5-1.1 1.1-1.1ZM8 7.4a4 4 0 0 1 8 0H8Zm.7-3.8L7.6 2.1m7.7 1.5 1.1-1.5M9.5 18v2.2m5-2.2v2.2"/></svg>
-                <span><small>Install for</small>Android</span>
+              <button class="install-button install-primary" id="install-android" type="button">
+                <svg class="install-primary-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2.5" width="16" height="19" rx="3"/><path d="M12 6v9"/><path d="m8.5 11.5 3.5 3.5 3.5-3.5"/><path d="M9 18h6"/></svg>
+                <span><small>Install app on</small><b id="install-primary-label">this device</b></span>
               </button>
               <button class="install-button install-ios" id="install-ios" type="button">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.8 13.1c0-2 1.7-3 1.8-3.1a3.9 3.9 0 0 0-3.1-1.7c-1.3-.1-2.6.8-3.2.8-.7 0-1.7-.8-2.8-.8-1.4 0-2.8.9-3.6 2.2-1.6 2.7-.4 6.8 1.1 9 .8 1 1.7 2.2 2.9 2.1 1.1 0 1.6-.7 3.1-.7s1.9.7 3.2.7c1.3 0 2.1-1.1 2.8-2.2.9-1.2 1.2-2.5 1.2-2.6-.1 0-2.4-.9-2.4-3.7ZM14.6 6.9c.6-.8 1.1-2 1-3.2-1 .1-2.3.7-3 1.5-.7.7-1.2 1.9-1.1 3 1.2.1 2.4-.5 3.1-1.3Z"/></svg>
-                <span><small>Install for</small>iPhone &amp; iPad</span>
+                <span><small>Add app on</small>iPhone &amp; iPad</span>
               </button>
             </div>
-            <p class="install-status" id="install-status" role="status">No app store account required.</p>
+            <p class="install-status" id="install-status" role="status" aria-live="polite">Installs from this secure website. No browser extension or app-store account required.</p>
           </div>
         </section>
       </section>
@@ -801,7 +808,7 @@
   <div id="toast" role="status"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js" onerror="window.__noMqtt=true"></script>
-  <script src="app.js?v=22"></script>
-  <script src="motion.js?v=22"></script>
+  <script src="app.js?v=23"></script>
+  <script src="motion.js?v=23"></script>
 </body>
 </html>

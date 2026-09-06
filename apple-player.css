@@ -629,6 +629,7 @@ select:focus-visible {
 .install-button:hover { transform: translateY(-3px) scale(1.015); background: #000; box-shadow: 0 16px 30px rgba(29,29,31,.23); }
 .install-button:active { transform: scale(.97); }
 .install-button svg { width: 1.7rem; height: 1.7rem; flex: none; fill: currentColor; }
+.install-button .install-primary-icon { fill: none; stroke: currentColor; }
 .install-button span { display: flex; flex-direction: column; align-items: flex-start; font-size: .92rem; font-weight: 650; line-height: 1.15; }
 .install-button small { color: rgba(255,255,255,.58); font-size: .58rem; font-weight: 560; letter-spacing: .07em; text-transform: uppercase; }
 .install-status { margin-top: .75rem; color: #89898f !important; font-size: .7rem !important; }
@@ -2175,6 +2176,7 @@ body.motion-scrolled .search-box:not(:focus-within) {
 .header-actions { gap: .55rem; }
 
 .view-back,
+.header-install,
 .theme-toggle {
   min-height: 2.35rem;
   border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
@@ -2192,6 +2194,7 @@ body.motion-scrolled .search-box:not(:focus-within) {
   border-radius: 50%;
 }
 .view-back svg { width: 1.2rem; height: 1.2rem; }
+.header-install,
 .theme-toggle {
   display: inline-flex;
   align-items: center;
@@ -2202,14 +2205,21 @@ body.motion-scrolled .search-box:not(:focus-within) {
   font-size: .72rem;
   font-weight: 650;
 }
+.header-install svg { width: 1.05rem; height: 1.05rem; flex: none; }
 .theme-toggle:hover,
+.header-install:hover,
 .view-back:hover { background: color-mix(in srgb, var(--text) 12%, transparent); }
 .theme-toggle:active,
+.header-install:active,
 .view-back:active { transform: scale(.94); }
 .theme-icon { width: 1rem; height: 1rem; flex: none; }
 .theme-icon-moon { display: none; }
 :root[data-theme="light"] .theme-icon-sun { display: none; }
 :root[data-theme="light"] .theme-icon-moon { display: block; }
+
+.app-installed .header-install,
+.app-installed .install-actions { display: none !important; }
+.install-section.is-installed .install-status { color: #34c759 !important; font-weight: 650; }
 
 /* Restore the original airy Apple material when customers choose Light. */
 html[data-theme="light"] {
@@ -2376,11 +2386,14 @@ html[data-theme="light"] .pulse-result-actions button:first-child { color: #fff;
 }
 
 @media (max-width: 430px) {
-  .theme-toggle span { display: none; }
+  .theme-toggle span,
+  .header-install span { display: none; }
+  .header-install { min-width: 2.35rem; padding-inline: .62rem; }
 }
 
 @media (pointer: coarse) {
   .theme-toggle,
+  .header-install,
   .view-back { min-width: 44px; min-height: 44px; }
 }
 

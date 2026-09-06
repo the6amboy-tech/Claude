@@ -2557,8 +2557,11 @@ loadAllLangSections();
 
 /* ---------- PWA: install experience + offline shell ---------- */
 const installUi = {
+  header: document.getElementById("header-install"),
   android: document.getElementById("install-android"),
   ios: document.getElementById("install-ios"),
+  primaryLabel: document.getElementById("install-primary-label"),
+  section: document.querySelector(".install-section"),
   status: document.getElementById("install-status"),
   dialog: document.getElementById("install-dialog"),
   kicker: document.getElementById("install-dialog-kicker"),
@@ -2572,18 +2575,66 @@ let deferredInstallPrompt = null;
 const appIsInstalled = () =>
   window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
 
+const devicePlatform = () => {
+  const ua = navigator.userAgent || "";
+  const ios = /iPad|iPhone|iPod/i.test(ua) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (ios) return "ios";
+  if (/Android/i.test(ua)) return "android";
+  return "desktop";
+};
+
 function setInstallStatus(message) {
   if (installUi.status) installUi.status.textContent = message;
+}
+
+function setInstallBusy(busy) {
+  [installUi.header, installUi.android, installUi.ios].forEach((button) => {
+    if (button) button.disabled = busy;
+  });
+}
+
+function syncInstallUi() {
+  const platform = devicePlatform();
+  const installed = appIsInstalled();
+  document.documentElement.classList.toggle("app-installed", installed);
+  installUi.section?.classList.toggle("is-installed", installed);
+  if (installUi.android) installUi.android.hidden = platform === "ios" || installed;
+  if (installUi.ios) installUi.ios.hidden = platform !== "ios" || installed;
+  if (installUi.header) installUi.header.hidden = installed;
+  if (installUi.primaryLabel) {
+    installUi.primaryLabel.textContent = platform === "android" ? "Android" : "this device";
+  }
+  if (installed) setInstallStatus("Asharas is installed. Open it from your Home Screen, Dock, or app launcher.");
 }
 
 function showInstallHelp(platform) {
   if (!installUi.dialog || !installUi.steps) return;
   const ios = platform === "ios";
-  installUi.kicker.textContent = ios ? "iPhone & iPad" : "Android";
-  installUi.title.textContent = ios ? "Add Asharas to your Home Screen" : "Install Asharas from your browser";
+  const android = platform === "android";
+  installUi.kicker.textContent = ios ? "iPhone & iPad app" : android ? "Android app" : "Desktop app";
+  installUi.title.textContent = ios
+    ? "Add Asharas to your Home Screen"
+    : android
+      ? "Install Asharas on Android"
+      : "Install Asharas on this computer";
   const instructions = ios
-    ? ["Open Asharas in Safari.", "Tap the Share button in Safari’s toolbar.", "Choose Add to Home Screen, then tap Add."]
-    : ["Open Asharas in Chrome.", "Tap the browser menu (⋮).", "Choose Install app or Add to Home screen, then confirm."];
+    ? [
+        "Open this website in Safari.",
+        "Tap the Share button, then choose Add to Home Screen.",
+        "Tap Add. Asharas will open from your Home Screen as its own app.",
+      ]
+    : android
+      ? [
+          "Open your browser’s main menu.",
+          "Choose Install app or Add to Home screen, then confirm Install.",
+          "Open Asharas from your app launcher. It is a standalone web app, not a browser extension.",
+        ]
+      : [
+          "Open your browser’s app or page menu.",
+          "Choose Install Asharas, Install this site as an app, or Add to Dock.",
+          "Launch Asharas from your desktop app menu or Dock. Nothing is added to your browser toolbar.",
+        ];
   installUi.steps.replaceChildren(...instructions.map((instruction) => {
     const item = document.createElement("li");
     item.textContent = instruction;
@@ -2591,6 +2642,32 @@ function showInstallHelp(platform) {
   }));
   if (typeof installUi.dialog.showModal === "function") installUi.dialog.showModal();
   else installUi.dialog.setAttribute("open", "");
+}
+
+async function requestAppInstall(platform = devicePlatform()) {
+  if (appIsInstalled()) {
+    syncInstallUi();
+    return;
+  }
+  if (platform === "ios" || !deferredInstallPrompt) {
+    showInstallHelp(platform);
+    return;
+  }
+
+  setInstallBusy(true);
+  try {
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    setInstallStatus(outcome === "accepted"
+      ? "Installing Asharas on this device…"
+      : "Installation cancelled. You can install Asharas anytime.");
+  } catch (error) {
+    console.warn("App install prompt unavailable:", error);
+    showInstallHelp(platform);
+  } finally {
+    setInstallBusy(false);
+  }
 }
 
 function closeInstallHelp() {
@@ -2602,21 +2679,13 @@ function closeInstallHelp() {
 window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
   deferredInstallPrompt = event;
-  setInstallStatus("Ready to install on this device.");
+  setInstallStatus("Ready to install directly on this device.");
+  syncInstallUi();
 });
 
-installUi.android?.addEventListener("click", async () => {
-  if (appIsInstalled()) { setInstallStatus("Asharas is already installed on this device."); return; }
-  if (!deferredInstallPrompt) { showInstallHelp("android"); return; }
-  deferredInstallPrompt.prompt();
-  const { outcome } = await deferredInstallPrompt.userChoice;
-  deferredInstallPrompt = null;
-  setInstallStatus(outcome === "accepted" ? "Asharas is being installed." : "Installation cancelled—you can try again anytime.");
-});
-installUi.ios?.addEventListener("click", () => {
-  if (appIsInstalled()) { setInstallStatus("Asharas is already installed on this device."); return; }
-  showInstallHelp("ios");
-});
+installUi.header?.addEventListener("click", () => requestAppInstall());
+installUi.android?.addEventListener("click", () => requestAppInstall());
+installUi.ios?.addEventListener("click", () => requestAppInstall("ios"));
 installUi.close?.addEventListener("click", closeInstallHelp);
 installUi.done?.addEventListener("click", closeInstallHelp);
 installUi.dialog?.addEventListener("click", (event) => {
@@ -2624,9 +2693,10 @@ installUi.dialog?.addEventListener("click", (event) => {
 });
 window.addEventListener("appinstalled", () => {
   deferredInstallPrompt = null;
-  setInstallStatus("Asharas was installed successfully.");
+  syncInstallUi();
+  setInstallStatus("Asharas was installed successfully. Open it from your device’s apps.");
 });
-if (appIsInstalled()) setInstallStatus("Asharas is installed on this device.");
+syncInstallUi();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
