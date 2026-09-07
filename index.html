@@ -11,7 +11,11 @@
   <meta name="keywords" content="Asharas, Asharas music, Asharas music player, Karthik Kotapati, Karthik Kotapati founder, founder of Asharas, online music player, free music streaming, listen together, synced lyrics, Telugu Hindi English songs" />
   <meta name="author" content="Karthik Kotapati" />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+  <meta name="theme-color" content="#09090d" />
+  <meta name="application-name" content="Asharas Music" />
   <link rel="canonical" href="https://www.asharas.in/" />
+  <link rel="preconnect" href="https://jiosaavn-api-one-rho.vercel.app" />
+  <link rel="dns-prefetch" href="//jiosaavn-api-one-rho.vercel.app" />
 
   <!-- Open Graph / social -->
   <meta property="og:type" content="website" />
@@ -40,7 +44,7 @@
     "alternateName": "Asharas Music",
     "url": "https://www.asharas.in/",
     "description": "Free online music player — search and stream songs, playlists, synced lyrics, and real-time Listen Together.",
-    "dateModified": "2026-09-05",
+    "dateModified": "2026-09-07",
     "applicationCategory": "MultimediaApplication",
     "applicationSubCategory": "MusicApplication",
     "operatingSystem": "Any",
@@ -109,7 +113,7 @@
         "alternateName": ["Asharas Music", "Asharas Music Player"],
         "url": "https://www.asharas.in/",
         "inLanguage": "en",
-        "dateModified": "2026-09-05",
+        "dateModified": "2026-09-07",
         "publisher": { "@id": "https://www.asharas.in/#org" },
         "author": { "@id": "https://www.asharas.in/#karthik" },
         "potentialAction": {
@@ -121,7 +125,6 @@
     ]
   }
   </script>
-  <meta name="application-name" content="Asharas" />
   <meta name="color-scheme" content="light dark" />
   <script>
     (() => {
@@ -132,13 +135,18 @@
         else if (matchMedia("(prefers-color-scheme: light)").matches) theme = "light";
       } catch {}
       document.documentElement.dataset.theme = theme;
+      if (matchMedia("(max-width: 900px), (hover: none) and (pointer: coarse)").matches ||
+          (navigator.deviceMemory && navigator.deviceMemory <= 4) ||
+          (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)) {
+        document.documentElement.classList.add("mobile-performance");
+      }
       if (matchMedia("(display-mode: standalone)").matches || navigator.standalone === true) {
         document.documentElement.classList.add("app-installed");
       }
     })();
   </script>
-  <link rel="stylesheet" href="style.css?v=23" />
-  <link rel="stylesheet" href="apple-player.css?v=23" />
+  <link rel="stylesheet" href="style.css?v=24" />
+  <link rel="stylesheet" href="apple-player.css?v=24" />
   <link rel="icon" href="/favicon.ico" sizes="48x48" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
@@ -146,8 +154,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
 
   <!-- PWA / installable app -->
-  <link rel="manifest" href="manifest.webmanifest?v=23" />
-  <meta name="theme-color" content="#09090d" />
+  <link rel="manifest" href="manifest.webmanifest?v=24" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -200,6 +207,10 @@
         <button class="nav-btn" data-nav="queue">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15V6"/><path d="M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path d="M12 12H3"/><path d="M16 6H3"/><path d="M12 18H3"/></svg>
           Queue
+        </button>
+        <button class="nav-btn" id="side-listening" data-nav="stats">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          Listening time
         </button>
 
         <span class="nav-section-label">Playlists</span>
@@ -506,6 +517,16 @@
             <p class="install-status" id="install-status" role="status" aria-live="polite">Installs from this secure website. No browser extension or app-store account required.</p>
           </div>
         </section>
+        <section class="seo-content" aria-labelledby="discover-title">
+          <span class="stats-kicker">ASHARAS MUSIC</span>
+          <h2 id="discover-title">A free online music player for every mood.</h2>
+          <p>Search Telugu, Hindi, English, Tamil, Kannada, Malayalam, and Punjabi songs in one clean music player. Save favourites, build playlists, follow synced lyrics, and start a fresh Asharas Pulse mix whenever you need a new sound.</p>
+          <div class="seo-content-grid">
+            <article><h3>Find songs quickly</h3><p>Explore artists, albums, new releases, and language collections with fast search.</p></article>
+            <article><h3>Listen your way</h3><p>Use the queue, themes, lyrics, and private on-device listening time to make the player yours.</p></article>
+            <article><h3>Stay in sync</h3><p>Share a Listen Together session with friends and keep the music moving across devices.</p></article>
+          </div>
+        </section>
       </section>
 
       <!-- ---- List view (results / mood / favorites / playlist) ---- -->
@@ -546,6 +567,24 @@
           <button class="pill-btn" id="pl-make">Create</button>
         </div>
         <div id="playlists-list" class="playlists"></div>
+      </section>
+
+      <section id="view-stats" hidden>
+        <div class="list-head">
+          <button class="pill-btn glass" id="back-home-4">← Home</button>
+          <h2 class="section-head">Listening time</h2>
+        </div>
+        <div class="stats-intro glass">
+          <span class="stats-kicker">PRIVATE ON THIS DEVICE</span>
+          <h2>See how your listening adds up.</h2>
+          <p>Your listening time is measured from real playback and stays on this device. No account or listening history is sent to Asharas.</p>
+        </div>
+        <div id="listening-metrics" class="listening-metrics"></div>
+        <div id="listening-chart" class="listening-chart glass" aria-label="Listening activity for the last seven days"></div>
+        <div class="stats-history glass">
+          <div class="stats-history-head"><h3>Most played here</h3><button class="pill-btn ghost" id="listening-reset">Reset local stats</button></div>
+          <div id="listening-top-tracks"></div>
+        </div>
       </section>
     </main>
   </div>
@@ -808,7 +847,8 @@
   <div id="toast" role="status"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js" onerror="window.__noMqtt=true"></script>
-  <script src="app.js?v=23"></script>
-  <script src="motion.js?v=23"></script>
+  <script src="listening-stats.js?v=1"></script>
+  <script src="app.js?v=24"></script>
+  <script src="motion.js?v=24"></script>
 </body>
 </html>

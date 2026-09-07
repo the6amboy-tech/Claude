@@ -2026,6 +2026,37 @@ body.motion-scrolled .search-box:not(:focus-within) {
 
 .motion-static .motion-field { display: none; }
 
+/* Keep the installed Android experience responsive on modest GPUs. The
+   colors and depth remain, while costly live blur and decorative loops rest. */
+.mobile-performance .motion-field,
+.mobile-performance #bg-canvas { display: none !important; }
+.mobile-performance .sidebar,
+.mobile-performance .player,
+.mobile-performance .search-box,
+.mobile-performance .pulse-card,
+.mobile-performance .creator-section,
+.mobile-performance .install-section,
+.mobile-performance dialog,
+.mobile-performance .np-controls,
+.mobile-performance .np-view-toggle {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.mobile-performance .motion-orb > i,
+.mobile-performance .creator-orbit-line,
+.mobile-performance .creator-wave span,
+.mobile-performance .install-halo,
+.mobile-performance .install-note,
+.mobile-performance .pulse-orbit > i,
+.mobile-performance .pulse-wave b { animation: none !important; }
+.mobile-performance .trend-row,
+.mobile-performance .creator-section,
+.mobile-performance .install-section,
+.mobile-performance .seo-content {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 420px;
+}
+
 /* ==========================================================================
    Asharas Pulse — signature one-tap personal mix
    ========================================================================== */

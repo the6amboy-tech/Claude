@@ -3,6 +3,7 @@ const API_BASE = "https://jiosaavn-api-one-rho.vercel.app";
 
 const prefersReducedMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const MOBILE_PERF = document.documentElement.classList.contains("mobile-performance");
 
 /* A small, interruptible spring for gesture-driven values. Retargeting cancels
    the previous frame loop and starts from the live presentation value. */
@@ -84,6 +85,7 @@ const el = {
   viewHome: $("view-home"),
   viewList: $("view-list"),
   viewPlaylists: $("view-playlists"),
+  viewStats: $("view-stats"),
   listTitle: $("list-title"),
   backHome: $("back-home"),
   backHome2: $("back-home-2"),
@@ -131,9 +133,14 @@ const el = {
   sideArtists: $("side-artists"),
   sideAlbums: $("side-albums"),
   sideSongs: $("side-songs"),
+  sideListening: $("side-listening"),
   mobileRecents: $("mobile-recents"),
   mobileFavorites: $("mobile-favorites"),
   mobileSongs: $("mobile-songs"),
+  listeningMetrics: $("listening-metrics"),
+  listeningChart: $("listening-chart"),
+  listeningTopTracks: $("listening-top-tracks"),
+  listeningReset: $("listening-reset"),
   sidebarNowPlaying: $("sidebar-now-playing"),
   sidebarCover: $("sidebar-cover"),
   sidebarTitle: $("sidebar-title"),
@@ -203,6 +210,7 @@ const el = {
   queueNextUp: $("queue-next-up"),
   queueRemaining: $("queue-remaining"),
   btnQueue: $("btn-queue"),
+  backHome4: $("back-home-4"),
 };
 
 /* ---------- Persistent state ---------- */
@@ -242,6 +250,12 @@ let listSongs = [];    // songs currently rendered in the list view
 let trendSongs = [];
 let langSongsCache = {};  // cache for language-specific rows
 let currentIndex = -1;
+
+const listeningTracker = window.AsharasListeningStats?.createTracker({
+  audio: el.audio,
+  getTrackId: () => queue[currentIndex]?.id || null,
+  onChange: () => { if (el.viewStats && !el.viewStats.hidden) renderListeningStats(); },
+});
 let seeking = false;
 let errorStreak = 0;
 let shuffleOn = false;
@@ -570,7 +584,7 @@ function normalizeSong(song) {
    This is what keeps the site healthy under heavy simultaneous use. */
 const API_TTL = 10 * 60 * 1000;          // searches: 10 minutes
 const API_TTL_LONG = 6 * 60 * 60 * 1000; // home rails / curated seeds: 6 hours
-const API_MAX_CONCURRENT = 4;
+const API_MAX_CONCURRENT = MOBILE_PERF ? 2 : 4;
 const apiInflight = new Map();
 let apiActive = 0;
 const apiWaiters = [];
@@ -801,6 +815,7 @@ function showView(name) {
   el.viewList.hidden = name !== "list";
   el.viewQueue.hidden = name !== "queue";
   el.viewPlaylists.hidden = name !== "playlists";
+  if (el.viewStats) el.viewStats.hidden = name !== "stats";
   if (el.viewBack) el.viewBack.hidden = name === "home";
   el.navBtns.forEach((b) => {
     const nav = b.dataset.nav;
@@ -817,9 +832,24 @@ function showView(name) {
       list: el.listTitle.textContent || "Music",
       queue: "Playing Next",
       playlists: "Library",
+      stats: "Listening time",
     };
     el.contentTitle.textContent = titles[name] || "Asharas";
   }
+}
+
+function renderListeningStats() {
+  if (!el.listeningMetrics || !listeningTracker) return;
+  const data = listeningTracker.snapshot();
+  const today = data.days[window.AsharasListeningStats.getDayKey()] || 0;
+  const keys = Object.keys(data.days).sort().slice(-7);
+  const week = keys.reduce((sum, key) => sum + (data.days[key] || 0), 0);
+  el.listeningMetrics.innerHTML = [["Today", today], ["Last 7 days", week], ["All time", data.totalMs], ["Sessions", data.sessions]].map(([label, value]) => `<article class="stat-card glass"><span>${label}</span><strong>${label === "Sessions" ? value : window.AsharasListeningStats.formatDuration(value)}</strong></article>`).join("");
+  const max = Math.max(1, ...keys.map((key) => data.days[key] || 0));
+  el.listeningChart.innerHTML = `<div class="stats-history-head"><h3>Recent activity</h3><span>Last ${keys.length || 0} days</span></div><div class="activity-bars">${keys.map((key) => `<div class="activity-day" title="${key}: ${window.AsharasListeningStats.formatDuration(data.days[key])}"><i style="height:${Math.max(6, Math.round((data.days[key] / max) * 100))}%"></i><small>${key.slice(5)}</small></div>`).join("")}</div>`;
+  const songs = librarySongs();
+  const top = Object.entries(data.tracks).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  el.listeningTopTracks.innerHTML = top.length ? top.map(([id, ms]) => { const song = songs.find((item) => item.id === id); return `<div class="stats-track"><img src="${song?.cover || COVER_FALLBACK}" alt="" /><span><strong>${song?.title || "Previously played song"}</strong><small>${song?.artist || "Asharas listener history"}</small></span><b>${window.AsharasListeningStats.formatDuration(ms)}</b></div>`; }).join("") : '<p class="empty-note">Play a song to start building your private listening history.</p>';
 }
 
 function returnHome() {
@@ -875,6 +905,7 @@ function coverImg(song, cls) {
   img.src = song.cover || COVER_FALLBACK;
   img.alt = `${song.title} album artwork`;
   img.loading = "lazy";
+  img.decoding = "async";
   img.onerror = () => { img.onerror = null; img.src = COVER_FALLBACK; };
   return img;
 }
@@ -1198,6 +1229,7 @@ function playIndex(i) {
   const song = queue[i];
 
   el.audio.src = song.streamUrl;
+  listeningTracker?.setTrack(song.id);
   el.audio.play().catch(() => {});
 
   el.cover.src = song.cover || COVER_FALLBACK;
@@ -1545,7 +1577,7 @@ async function loadTrending() {
     // Curated seeds are individually cached for 6h by the API layer, and the
     // concurrency cap keeps first-load requests to a slow trickle.
     const picks = await Promise.allSettled(
-      FAMOUS_HITS.slice(0, 8).map((q) => searchSongs(q, 2, API_TTL_LONG))
+      FAMOUS_HITS.slice(0, MOBILE_PERF ? 2 : 6).map((q) => searchSongs(q, 2, API_TTL_LONG))
     );
     const famous = [];
     for (const p of picks) {
@@ -1588,6 +1620,25 @@ async function loadAllLangSections() {
   for (const sec of LANG_SECTIONS) {
     await loadLangSection(sec.key, el[sec.rowEl], sec.label);
   }
+}
+
+function loadLangSectionsLazily() {
+  if (!("IntersectionObserver" in window)) {
+    loadAllLangSections();
+    return;
+  }
+  const loaded = new Set();
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      const sec = LANG_SECTIONS.find((item) => el[item.rowEl] === entry.target);
+      if (!sec || loaded.has(sec.key)) return;
+      loaded.add(sec.key);
+      observer.unobserve(entry.target);
+      loadLangSection(sec.key, el[sec.rowEl], sec.label);
+    });
+  }, { rootMargin: "500px 0px" });
+  LANG_SECTIONS.forEach((sec) => observer.observe(el[sec.rowEl]));
 }
 
 // "See all" for each language section
@@ -1814,6 +1865,7 @@ el.viewBack?.addEventListener("click", returnHome);
 el.backHome.addEventListener("click", returnHome);
 el.backHome2.addEventListener("click", returnHome);
 el.backHome3.addEventListener("click", returnHome);
+el.backHome4?.addEventListener("click", returnHome);
 el.themeToggle?.addEventListener("click", () => {
   applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
 });
@@ -1907,6 +1959,11 @@ el.sideSongs?.addEventListener("click", () => {
   showView("list");
   activateCustomNav(el.sideSongs);
 });
+el.sideListening?.addEventListener("click", () => {
+  renderListeningStats();
+  showView("stats");
+  activateCustomNav(el.sideListening);
+});
 el.mobileRecents?.addEventListener("click", () => {
   renderList(recents, "Recently Added");
   showView("list");
@@ -1921,6 +1978,12 @@ el.mobileSongs?.addEventListener("click", () => {
   renderList(librarySongs(), "Songs");
   showView("list");
   activateCustomNav(document.querySelector('[data-nav="playlists"]'));
+});
+el.listeningReset?.addEventListener("click", () => {
+  if (!confirm("Reset listening time saved on this device?")) return;
+  listeningTracker?.reset();
+  renderListeningStats();
+  toast("Listening history reset");
 });
 el.accountButton?.addEventListener("click", () => {
   showView("home");
@@ -2252,17 +2315,19 @@ el.plClose.addEventListener("click", () => el.plDialog.close());
 
 // Audio element
 el.audio.addEventListener("play", () => {
+  listeningTracker?.start();
   el.player.classList.add("playing");
   markActive();
   broadcastHostEvent({ type: "play" });
 });
 el.audio.addEventListener("pause", () => {
+  listeningTracker?.pause();
   el.player.classList.remove("playing");
   markActive();
   broadcastHostEvent({ type: "pause" });
 });
 el.audio.addEventListener("playing", () => { errorStreak = 0; });
-el.audio.addEventListener("ended", onEnded);
+el.audio.addEventListener("ended", () => { listeningTracker?.pause(); onEnded(); });
 el.audio.addEventListener("error", () => {
   if (currentIndex === -1) return;
   errorStreak++;
@@ -2523,7 +2588,8 @@ paintRange(el.volume);
 paintRange(el.seek);
 renderRecents();
 loadTrending();
-loadAllLangSections();
+if (MOBILE_PERF) loadLangSectionsLazily();
+else loadAllLangSections();
 
 // Deep links: ?session=<CODE> auto-joins a session; ?q=&song= shares a song
 (async () => {
@@ -2702,14 +2768,28 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     const hadController = Boolean(navigator.serviceWorker.controller);
     let refreshingForUpdate = false;
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (!hadController || refreshingForUpdate) return;
+    const reloadWhenSafe = () => {
+      if (refreshingForUpdate) return;
+      if (el.audio && !el.audio.paused) {
+        toast("Update ready — it will apply when playback pauses");
+        el.audio.addEventListener("pause", reloadWhenSafe, { once: true });
+        return;
+      }
       refreshingForUpdate = true;
       window.location.reload();
+    };
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (hadController) reloadWhenSafe();
     });
     navigator.serviceWorker
       .register("sw.js", { updateViaCache: "none" })
-      .then((registration) => registration.update())
+      .then((registration) => {
+        const check = () => { if (navigator.onLine) registration.update().catch(() => {}); };
+        check();
+        window.addEventListener("online", check);
+        document.addEventListener("visibilitychange", () => { if (!document.hidden) check(); });
+        setInterval(check, 30 * 60 * 1000);
+      })
       .catch(() => {});
   });
 }

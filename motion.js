@@ -5,9 +5,10 @@
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
   const finePointer = matchMedia("(hover: hover) and (pointer: fine)");
   const saveData = navigator.connection?.saveData === true;
+  const mobilePerformance = root.classList.contains("mobile-performance");
 
   if (reducedMotion.matches) return;
-  if (saveData) {
+  if (saveData || mobilePerformance) {
     root.classList.add("motion-static");
     return;
   }
