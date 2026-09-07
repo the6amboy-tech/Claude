@@ -1,8 +1,8 @@
 /* Asharas service worker — offline app shell + safe pass-through.
    Bump CACHE to invalidate old shells on deploy. */
-const CACHE = "asharas-v24";
+const CACHE = "asharas-v25";
 const SHELL = [
-  "./", "./index.html", "./style.css?v=24", "./apple-player.css?v=24", "./listening-stats.js?v=1", "./app.js?v=24", "./motion.js?v=24", "./manifest.webmanifest?v=24",
+  "./", "./index.html", "./style.css?v=25", "./apple-player.css?v=25", "./listening-stats.js?v=1", "./app.js?v=25", "./motion.js?v=25", "./manifest.webmanifest?v=25",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png",
   "./icons/apple-touch-icon.png", "./og-image.png", "./favicon.ico", "./favicon.svg", "./favicon-48.png", "./favicon-64.png", "./favicon-32.png",
   "./assets/logos/asharas-mark.svg",

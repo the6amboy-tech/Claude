@@ -1139,6 +1139,7 @@ dialog::backdrop { background: rgba(20,20,23,.24); backdrop-filter: blur(8px); }
   .nav-section-label,
   .sidebar-now-playing,
   #side-recents,
+  #side-listening,
   .desktop-library-link,
   [data-nav="favorites"] { display: none !important; }
   .side-nav { height: 100%; display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: .1rem; }

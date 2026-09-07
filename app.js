@@ -137,6 +137,7 @@ const el = {
   mobileRecents: $("mobile-recents"),
   mobileFavorites: $("mobile-favorites"),
   mobileSongs: $("mobile-songs"),
+  mobileListening: $("mobile-listening"),
   listeningMetrics: $("listening-metrics"),
   listeningChart: $("listening-chart"),
   listeningTopTracks: $("listening-top-tracks"),
@@ -1977,6 +1978,11 @@ el.mobileFavorites?.addEventListener("click", () => {
 el.mobileSongs?.addEventListener("click", () => {
   renderList(librarySongs(), "Songs");
   showView("list");
+  activateCustomNav(document.querySelector('[data-nav="playlists"]'));
+});
+el.mobileListening?.addEventListener("click", () => {
+  renderListeningStats();
+  showView("stats");
   activateCustomNav(document.querySelector('[data-nav="playlists"]'));
 });
 el.listeningReset?.addEventListener("click", () => {
